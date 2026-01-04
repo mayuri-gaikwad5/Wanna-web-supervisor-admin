@@ -41,7 +41,8 @@ First, clone the repository:
 git clone [https://github.com/mayuri-gaikwad5/Wanna-web-supervisor-admin.git](https://github.com/mayuri-gaikwad5/Wanna-web-supervisor-admin.git)
 cd Wanna-web-supervisor-admin
 
-## Setup Backend
+### 3. Setup Backend
+ 
 
 cd backend
 npm install
