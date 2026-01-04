@@ -37,13 +37,13 @@ Ensure you have **Node.js** and **npm** installed.
 ### 2. Installation
 
 First, clone the repository:
-```bash
+
 git clone [https://github.com/mayuri-gaikwad5/Wanna-web-supervisor-admin.git](https://github.com/mayuri-gaikwad5/Wanna-web-supervisor-admin.git)
 cd Wanna-web-supervisor-admin
 
 ### 3. Setup Backend
  
-
+```bash
 cd backend
 npm install
 # Note: You may need to create a .env file for database and JWT secrets
