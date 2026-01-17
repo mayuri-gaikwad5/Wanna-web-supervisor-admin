@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { auth } from '../../../firebase/firebaseConfig.js';
+import { auth } from "../../../firebase/firebaseConfig";
 import {
   createUserWithEmailAndPassword,
-  sendEmailVerification
-} from 'firebase/auth';
+  sendEmailVerification,
+} from "firebase/auth";
 
-import PasswordStrengthBar from 'react-password-strength-bar';
-import './Signup.css';
+import PasswordStrengthBar from "react-password-strength-bar";
+import "./Signup.css";
 
 import signupimage from "../../../assets/Signup.png";
 
@@ -16,115 +16,96 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: ''
+    name: "",
+    email: "",
+    password: "",
+    region: "",
   });
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      const { email, password, name } = formData;
+      const { name, email, password, region } = formData;
 
-      // 1. Create Firebase user
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // 2. Send verification email
-      await sendEmailVerification(user);
-      setVerificationSent(true);
-      setSuccessMessage(
-        "Signup successful! Please verify your email. You can resend the verification email if it expires."
+      // 1️⃣ Create Firebase Auth account
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
       );
 
-      // 3. Sync with MongoDB
-      const response = await fetch("http://localhost:3000/user/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          firebaseUid: user.uid
-        }),
-      });
+      const user = userCredential.user;
+
+      // 2️⃣ Send email verification
+      await sendEmailVerification(user);
+
+      // 3️⃣ Save supervisor in MongoDB
+      const response = await fetch(
+        "http://localhost:3000/supervisor/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            region,
+            firebaseUid: user.uid,
+          }),
+        }
+      );
+
+      const data = await response.json();
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to sync with database");
+        console.warn("MongoDB sync failed, but Firebase signup succeeded");
       }
 
+      alert(
+        "Signup successful! Please verify your email. Admin approval is required before login."
+      );
+
+      navigate("/login");
     } catch (err) {
-      if (err.code === 'auth/weak-password') {
-        setError('The password is too weak.');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError('This email is already registered.');
+      console.error("Signup Error:", err);
+
+      if (err.code === "auth/weak-password") {
+        setError("Password is too weak.");
+      } else if (err.code === "auth/email-already-in-use") {
+        setError("Email already registered.");
       } else {
         setError(err.message);
       }
-      console.error("Signup Error:", err.message);
     } finally {
       setLoading(false);
-      setFormData({ name: '', email: '', password: '' });
-    }
-  };
-
-  // RESEND VERIFICATION EMAIL
-  const handleResendVerification = async () => {
-    try {
-      const user = auth.currentUser;
-
-      if (!user) {
-        alert("Please login again to resend verification email.");
-        return;
-      }
-
-      await sendEmailVerification(user);
-      setSuccessMessage("Verification email resent. Please check your inbox.");
-
-      setResendCooldown(30);
-      const timer = setInterval(() => {
-        setResendCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-    } catch (err) {
-      console.error("Resend error:", err);
-      setError("Failed to resend verification email.");
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        region: "",
+      });
     }
   };
 
   return (
     <div className="signup-container">
       <div className="image-section">
-        <img
-          src={signupimage}
-          alt="Background"
-          className="Signup-image"
-        />
+        <img src={signupimage} alt="Signup" className="Signup-image" />
       </div>
 
       <div className="form-section">
@@ -132,96 +113,65 @@ const Signup = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name" className="label">Full Name</label>
+            <label className="label">Full Name</label>
             <input
               type="text"
-              id="name"
               name="name"
               value={formData.name}
               onChange={handleChange}
               placeholder="Enter your name"
-              className="input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="email" className="label">Work Email</label>
+            <label className="label">Work Email</label>
             <input
               type="email"
-              id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               placeholder="Enter your email"
-              className="input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password" className="label">Password</label>
+            <label className="label">Region</label>
+            <input
+              type="text"
+              name="region"
+              value={formData.region}
+              onChange={handleChange}
+              placeholder="Enter region (e.g. Solapur)"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="label">Password</label>
             <input
               type="password"
-              id="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               placeholder="Create a password"
-              className="input"
               required
             />
             <PasswordStrengthBar
               password={formData.password}
-              style={{ marginTop: '10px' }}
+              style={{ marginTop: "10px" }}
             />
           </div>
 
           {error && (
-            <div className="error" style={{ color: 'red', marginBottom: '10px' }}>
-              {error}
-            </div>
+            <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>
           )}
 
-          {successMessage && (
-            <div style={{ color: 'green', marginBottom: '10px', fontSize: '14px' }}>
-              {successMessage}
-            </div>
-          )}
-
-          <button type="submit" className="button" disabled={loading}>
-            {loading ? 'Processing...' : 'Register as Supervisor'}
+          <button type="submit" disabled={loading}>
+            {loading ? "Processing..." : "Register as Supervisor"}
           </button>
         </form>
-
-        {verificationSent && (
-          <div style={{ marginTop: "15px", textAlign: "center" }}>
-            <p style={{ fontSize: "14px" }}>
-              Didn’t receive the verification email?
-            </p>
-
-            <button
-              type="button"
-              onClick={handleResendVerification}
-              disabled={resendCooldown > 0}
-              className="button"
-              style={{ marginTop: "5px" }}
-            >
-              {resendCooldown > 0
-                ? `Resend in ${resendCooldown}s`
-                : "Resend Verification Email"}
-            </button>
-
-            <button
-              type="button"
-              className="button"
-              style={{ marginTop: "10px", backgroundColor: "#6c757d" }}
-              onClick={() => navigate('/login')}
-            >
-              Go to Login
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
