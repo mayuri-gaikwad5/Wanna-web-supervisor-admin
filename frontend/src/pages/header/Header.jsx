@@ -1,22 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { useLocation, Link } from "react-router-dom";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/logo.png"; //
 
 const Header = () => {
-  const location = useLocation();
+  const location = useLocation(); //
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [role, setRole] = useState(null);
+  const [role, setRole] = useState(null); //
 
   useEffect(() => {
+    // Check authentication status and role from local storage
     const token = localStorage.getItem("token");
-    const storedRole = localStorage.getItem("role"); // ✅ correct variable
+    const storedRole = localStorage.getItem("role");
 
     setIsLoggedIn(Boolean(token));
-    setRole(storedRole); // ✅ FIX
-  }, [location]);
+    setRole(storedRole);
+  }, [location]); // Re-run effect on route changes to keep UI in sync
 
+  // Logic to determine the correct dashboard base path based on user role
   const getDashboardPath = () => {
     if (role === "admin") return "/admin/approval";
     if (role === "supervisor") return "/supervisor/dashboard";
@@ -43,9 +45,18 @@ const Header = () => {
             <Nav.Link as={Link} to="/home">Home</Nav.Link>
 
             {isLoggedIn && (
-              <Nav.Link as={Link} to={getDashboardPath()}>
-                Dashboard
-              </Nav.Link>
+              <>
+                <Nav.Link as={Link} to={getDashboardPath()}>
+                  Dashboard
+                </Nav.Link>
+                
+                {/* NEW: Explicitly add History tab only for supervisors */}
+                {role === "supervisor" && (
+                  <Nav.Link as={Link} to="/supervisor/history">
+                    History
+                  </Nav.Link>
+                )}
+              </>
             )}
           </Nav>
 

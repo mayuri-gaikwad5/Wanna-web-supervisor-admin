@@ -6,17 +6,6 @@ import React, {
   forwardRef,
 } from "react";
 
-/**
- * Default India view (used on initial load)
- * IMPORTANT: Mappls expects [lng, lat]
- */
-const INDIA_CENTER = {
-  lat: 17.6701,
-  lng: 75.9010,
-};
-
-const SOS_RADIUS_METERS = 7777; // ~7.7 km radius
-
 const Map = forwardRef(({ alerts = [] }, ref) => {
   const mapRef = useRef(null);
   const markersRef = useRef({});
@@ -49,20 +38,20 @@ const Map = forwardRef(({ alerts = [] }, ref) => {
 
       try {
         mapRef.current = new window.mappls.Map("map", {
-          center: [INDIA_CENTER.lng, INDIA_CENTER.lat],
+          center: [20.5937, 78.9629], // India
           zoom: 5,
           zoomControl: true,
           mapStyle: "standard_day",
+            maxBounds: [
+                [6.0, 68.0],   // Southwest (India)
+                [36.0, 97.0],   // Northeast (India)
+            ],
+
+            minZoom: 4,
+            maxZoom: 18,
         });
 
         mapRef.current.on("load", () => {
-          // 🔐 Always start with India view
-          mapRef.current.setCenter([
-            INDIA_CENTER.lng,
-            INDIA_CENTER.lat,
-          ]);
-          mapRef.current.setZoom(5);
-
           setIsMapLoaded(true);
         });
       } catch (error) {
@@ -82,15 +71,13 @@ const Map = forwardRef(({ alerts = [] }, ref) => {
     };
   }, []);
 
-  // =================================================
-  // Sync SOS Markers + Radius Circles
-  // =================================================
+  /* 📍 SYNC MARKERS */
   useEffect(() => {
     if (!isMapLoaded || !mapRef.current) return;
 
-    // 🔹 Remove old markers & circles
-    Object.keys(markersRef.current).forEach((id) => {
-      if (!alerts.find((a) => a.id === id)) {
+    // Remove old markers
+    Object.keys(markersRef.current).forEach(id => {
+      if (!alerts.find(a => a.id === id)) {
         markersRef.current[id].setMap(null);
         delete markersRef.current[id];
 
@@ -101,8 +88,8 @@ const Map = forwardRef(({ alerts = [] }, ref) => {
       }
     });
 
-    // 🔹 Add new markers & circles
-    alerts.forEach((alert) => {
+    // Add new markers
+    alerts.forEach(alert => {
       if (
         markersRef.current[alert.id] ||
         typeof alert.lat !== "number" ||
@@ -111,34 +98,27 @@ const Map = forwardRef(({ alerts = [] }, ref) => {
         return;
       }
 
-      // 📍 Marker
-      markersRef.current[alert.id] = new window.mappls.Marker({
+      const marker = new window.mappls.Marker({
         map: mapRef.current,
-        position: {
-          lng: alert.lng,
-          lat: alert.lat,
-        },
+        position: { lat: alert.lat, lng: alert.lng },
         icon_url: "https://apis.mapmyindia.com/map_v3/1.png",
-        popupHtml: `
-          <div style="font-size:14px">
-            <strong>${alert.userName || "User"}</strong><br/>
-            🚨 SOS ACTIVE
-          </div>
-        `,
       });
 
-      // 🔵 Radius Circle
-      circlesRef.current[alert.id] = new window.mappls.Circle({
-        map: mapRef.current,
-        center: {
-          lng: alert.lng,
-          lat: alert.lat,
-        },
-        radius: SOS_RADIUS_METERS, // meters
-        fillColor: "transparent",
-        strokeColor: "blue",
-        strokeWeight: 2,
+      // ✅ SHOW NAME ON CLICK
+      marker.addListener("click", () => {
+        new window.mappls.Popup({
+          map: mapRef.current,
+          position: { lat: alert.lat, lng: alert.lng },
+          content: `
+            <div style="font-size:14px; line-height:1.4">
+              <strong>${alert.userName || "Unknown Victim"}</strong><br/>
+              🚨 SOS ACTIVE
+            </div>
+          `,
+        });
       });
+
+      markersRef.current[alert.id] = marker;
     });
   }, [alerts, isMapLoaded]);
 

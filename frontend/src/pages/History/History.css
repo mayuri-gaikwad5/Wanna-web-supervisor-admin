@@ -1,0 +1,39 @@
+.history-page {
+    background-color: #f4f7f6;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+}
+
+.history-table {
+    white-space: nowrap; /* Prevents text from squishing */
+    background-color: white;
+}
+
+.history-table thead th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    padding: 15px 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.history-table td {
+    padding: 12px 10px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #edf2f7;
+    vertical-align: middle;
+}
+
+/* Allow the message column to wrap so it doesn't make the table too wide */
+.text-wrap {
+    white-space: normal !important;
+}
+
+.history-table tbody tr:hover {
+    background-color: #f9fbff;
+}
+
+.font-monospace {
+    color: #e83e8c; /* Makes coordinates stand out slightly */
+}

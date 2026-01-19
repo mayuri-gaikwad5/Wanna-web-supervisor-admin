@@ -51,6 +51,16 @@ function App() {
           }
         />
 
+        {/* UPDATED: History Route aligned with Header link */}
+        <Route
+          path="/supervisor/history"
+          element={
+            <ProtectedRoute allowedRole="supervisor">
+              <History />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Shared Protected Routes */}
         <Route
           path="/dashboard"
@@ -66,15 +76,6 @@ function App() {
           element={
             <ProtectedRoute>
               <Currentstatus />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/history"
-          element={
-            <ProtectedRoute>
-              <History />
             </ProtectedRoute>
           }
         />
