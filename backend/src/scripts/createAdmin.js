@@ -1,26 +1,44 @@
 const Admin = require("../models/admin");
 
 async function createAdmin() {
-  const adminEmail = "admin@wana.com";
-  const adminUid = "owoeuOPnRxbUmru7cKEEUcbl1nA3"; // Firebase UID
-  const adminRegion = "Solapur"; // MUST match your system region
+  const admins = [
+    {
+      name: "WANA Solapur Admin",
+      email: "admin.solapur@wana.com",
+      firebaseUid: "QXycBZ5j9zMa9prErOuFK5auQxF2",
+      region: "Solapur",
+    },
+    {
+      name: "WANA Pune Admin",
+      email: "admin.pune@wana.com",
+      firebaseUid: "D2pT46Tg5egmJQxEjEgaYM3rT6z2",
+      region: "Pune",
+    },
+  ];
 
-  const exists = await Admin.findOne({ email: adminEmail });
+  for (const adminData of admins) {
+    // 🔥 CHECK BY REGION (NOT EMAIL)
+    const exists = await Admin.findOne({ region: adminData.region });
 
-  if (exists) {
-    console.log("✅ Admin already exists");
-    return;
+    if (exists) {
+      console.log(
+        `✅ Admin already exists for region: ${adminData.region}`
+      );
+      continue;
+    }
+
+    await Admin.create({
+      name: adminData.name,
+      email: adminData.email,
+      firebaseUid: adminData.firebaseUid,
+      region: adminData.region,
+      role: "admin",
+    });
+
+    console.log(
+      `✅ Admin created: ${adminData.email} (${adminData.region})`
+    );
   }
-
-  const admin = await Admin.create({
-    name: "WANA Admin",
-    email: adminEmail,
-    firebaseUid: adminUid,
-    region: adminRegion,
-    role: "admin"
-  });
-
-  console.log("✅ Admin created successfully", admin.email);
 }
 
 module.exports = createAdmin;

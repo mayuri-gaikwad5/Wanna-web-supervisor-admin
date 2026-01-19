@@ -25,8 +25,8 @@ app.use("/admin", authMiddleware, adminRoutes);
 app.use("/supervisor", supervisorRoutes);
 
 // Start server
-connectDB().then(() => {
-  createAdmin();
+connectDB().then(async () => {
+  await createAdmin();
 
   app.listen(3000, () => {
     console.log("DEBUG MONGO_URI =", process.env.MONGO_URI);

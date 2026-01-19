@@ -6,13 +6,13 @@ const Supervisor = require("../models/supervisor");
 
 /**
  * GET /auth/status/:uid
- * Resolve role & approval status
+ * Resolve role, region & approval status
  */
 router.get("/status/:uid", async (req, res) => {
   try {
     const firebaseUid = req.params.uid;
 
-    // 1️⃣ Check Admin FIRST
+    // 1️⃣ ADMIN CHECK (FIRST)
     const admin = await Admin.findOne({ firebaseUid });
 
     if (admin) {
@@ -24,7 +24,7 @@ router.get("/status/:uid", async (req, res) => {
       });
     }
 
-    // 2️⃣ Check Supervisor
+    // 2️⃣ SUPERVISOR CHECK
     const supervisor = await Supervisor.findOne({ firebaseUid });
 
     if (supervisor) {
@@ -36,10 +36,12 @@ router.get("/status/:uid", async (req, res) => {
       });
     }
 
-    // 3️⃣ Not found
-    return res.status(404).json({ message: "Account not found" });
+    // 3️⃣ NOT FOUND
+    return res.status(404).json({
+      message: "Account not found in system database",
+    });
   } catch (error) {
-    console.error("Auth status error:", error.message);
+    console.error("❌ Auth status error:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 });

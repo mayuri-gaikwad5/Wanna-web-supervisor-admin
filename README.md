@@ -58,3 +58,23 @@ npm run dev
 
 
 
+### 2026-01-19 
+#### Stable Release – Multi-Region Admin & Supervisor System
+**Major Updates:**
+- Region-based Admin system implemented
+- One Admin per region (e.g., Solapur, Pune)
+- Supervisor signup includes region selection
+- Supervisor approval requests are visible **only to Admin of same region**
+- Admin approval flow stabilized
+- Supervisor dashboard fixed for reload (no auto logout)
+- Map shows region-based view (e.g., Solapur supervisor sees Solapur)
+- Email verification:
+  - Supervisor → Required
+  - Admin → Not required
+- Backend auth status unified and secured
+- MongoDB duplicate region protection handled
+- Mappls integration stabilized (lat/lng order fixed)
+## Notes
+- Do not create multiple admins for same region
+- Region names must match across system (case-sensitive)
+- Always commit stable code before major changes

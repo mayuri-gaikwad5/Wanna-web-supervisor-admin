@@ -38,6 +38,7 @@ const Login = () => {
     setMessage("");
 
     try {
+      // 🔐 Firebase login
       const cred = await signInWithEmailAndPassword(
         auth,
         formData.email,
@@ -46,11 +47,22 @@ const Login = () => {
 
       const user = cred.user;
 
+      // 🔎 Ask backend who this user is
       const res = await fetch(
         `http://localhost:3000/auth/status/${user.uid}`
       );
+
+      if (!res.ok) {
+        throw new Error("Account not found");
+      }
+
       const data = await res.json();
 
+      /**
+       * 🚨 EMAIL VERIFICATION RULE
+       * ❌ Supervisor → MUST verify email
+       * ✅ Admin → NO email verification required
+       */
       if (!user.emailVerified && data.role !== "admin") {
         setError("Email not verified");
         setShowResend(true);
@@ -59,16 +71,22 @@ const Login = () => {
         return;
       }
 
-      if (!data.isApproved) {
+      /**
+       * 🚨 APPROVAL RULE (Supervisor only)
+       */
+      if (data.role === "supervisor" && !data.isApproved) {
         setError("Awaiting admin approval");
         await signOut(auth);
         return;
       }
 
+      // ✅ Save auth session
       const token = await user.getIdToken();
       localStorage.setItem("token", token);
       localStorage.setItem("role", data.role);
+      localStorage.setItem("region", data.region);
 
+      // 🚀 Redirect
       navigate(
         data.role === "admin"
           ? "/admin/approval"
@@ -82,6 +100,7 @@ const Login = () => {
   };
 
   const handleResendVerification = async () => {
+    if (!unverifiedUser) return;
     await sendEmailVerification(unverifiedUser);
     setMessage("Verification email resent");
     setShowResend(false);
@@ -91,7 +110,7 @@ const Login = () => {
     <div className="login-page">
       <div className="login-container">
         <div className="login-image">
-          <img src={loginImg} alt="login"/>
+          <img src={loginImg} alt="login" />
         </div>
 
         <div className="login-card">
