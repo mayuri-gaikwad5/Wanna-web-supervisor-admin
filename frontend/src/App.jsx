@@ -13,6 +13,7 @@ import Home from './pages/Home/Home.jsx';
 import Dashboard from './pages/dashboard/Dashboard.jsx';
 import Currentstatus from './pages/Currentstatus/CurrentStatusf.jsx';
 import History from './pages/History/Historyf.jsx';
+import AdminLogs from './pages/admin/AdminLogs.jsx';
 
 // Supervisor & Admin
 import SupervisorDashboard from './pages/supervisor/SupervisorDashboard.jsx';
@@ -37,6 +38,15 @@ function App() {
           element={
             <ProtectedRoute allowedRole="admin">
               <AdminApproval />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/logs"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminLogs />
             </ProtectedRoute>
           }
         />

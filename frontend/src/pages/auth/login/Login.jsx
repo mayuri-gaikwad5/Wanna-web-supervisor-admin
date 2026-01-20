@@ -85,6 +85,18 @@ const Login = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("region", data.region);
+      
+      await fetch("http://localhost:3000/logs/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          eventType: "login",
+          actionDescription: "Supervisor logged in",
+        }),
+      });
 
       // 🚀 Redirect
       navigate(
