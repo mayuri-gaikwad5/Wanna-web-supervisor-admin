@@ -9,7 +9,7 @@ const { authMiddleware } = require("./middleware/authMiddleware");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
 const supervisorRoutes = require("./routes/supervisor.routes");
-
+const logsRoutes = require("./routes/logs.routes");
 const createAdmin = require("./scripts/createAdmin");
 
 const app = express();
@@ -23,7 +23,7 @@ app.use("/auth", authRoutes);
 // Protected
 app.use("/admin", authMiddleware, adminRoutes);
 app.use("/supervisor", supervisorRoutes);
-
+app.use("/logs", logsRoutes);
 // Start server
 connectDB().then(async () => {
   await createAdmin();

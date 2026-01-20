@@ -28,6 +28,49 @@ router.get("/supervisors/pending", async (req, res) => {
   }
 });
 
+router.get("/supervisors/approved", async (req, res) => {
+  try {
+    if (req.user.role !== "admin")
+      return res.status(403).json({ message: "Access denied" });
+
+    const supervisors = await Supervisor.find({
+      region: req.user.region,
+      isApproved: true,
+    });
+
+    res.json(supervisors);
+  } catch (err) {
+    console.error("Fetch approved supervisors error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+router.patch("/supervisors/:id/revoke", async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const supervisor = await Supervisor.findById(req.params.id);
+    if (!supervisor) {
+      return res.status(404).json({ message: "Supervisor not found" });
+    }
+
+    // Prevent cross-region revoke
+    if (supervisor.region !== req.user.region) {
+      return res.status(403).json({ message: "You cannot revoke supervisors from another region" });
+    }
+
+    supervisor.isApproved = false;  // 🔥 Soft revoke
+    await supervisor.save();
+
+    res.json({ message: "Supervisor access revoked successfully", supervisor });
+  } catch (err) {
+    console.error("Soft revoke error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 /**
  * APPROVE supervisor
  * URL: /admin/supervisors/:id/approve

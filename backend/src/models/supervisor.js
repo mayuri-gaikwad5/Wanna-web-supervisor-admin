@@ -25,6 +25,7 @@ const supervisorSchema = new mongoose.Schema(
       type: String,
       required: true,   // VERY IMPORTANT
       index: true,      // helps admin filtering
+      
     },
 
     role: {
