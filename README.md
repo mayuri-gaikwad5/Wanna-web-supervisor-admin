@@ -74,6 +74,7 @@ npm run dev
 - Backend auth status unified and secured
 - MongoDB duplicate region protection handled
 - Mappls integration stabilized (lat/lng order fixed)
+- Supervisor logs for admin in particular region with access management
 ## Notes
 - Do not create multiple admins for same region
 - Region names must match across system (case-sensitive)
