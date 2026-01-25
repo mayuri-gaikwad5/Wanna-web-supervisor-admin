@@ -6,95 +6,114 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import Map from "../dashboard/Map.jsx";
 import "./SupervisorDashboard.css";
 
+/* 🔥 UNIVERSAL LOCATION PARSER */
+const extractLatLng = (location) => {
+  if (!location) return { lat: null, lng: null };
+
+  // Case 1: Firestore GeoPoint
+  if (location.latitude && location.longitude) {
+    return {
+      lat: location.latitude,
+      lng: location.longitude,
+    };
+  }
+
+  // Case 2: Object { lat, lng }
+  if (location.lat && location.lng) {
+    return {
+      lat: Number(location.lat),
+      lng: Number(location.lng),
+    };
+  }
+
+  // Case 3: Array ["17.65° N", "75.94° E"]
+  if (Array.isArray(location) && location.length === 2) {
+    const lat = parseFloat(
+      location[0].toString().replace(/[^\d.-]/g, "")
+    );
+    const lng = parseFloat(
+      location[1].toString().replace(/[^\d.-]/g, "")
+    );
+
+    return { lat, lng };
+  }
+
+  return { lat: null, lng: null };
+};
+
 const SupervisorDashboard = () => {
   const navigate = useNavigate();
-  const mapComponentRef = useRef(null);
+  const mapRef = useRef(null);
 
   const [alerts, setAlerts] = useState([]);
-  const [activeUsers, setActiveUsers] = useState(0);
-
   const [supervisor, setSupervisor] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true); // 🔑 IMPORTANT
-  const [dataLoading, setDataLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  /* 🔐 AUTH + PROFILE (SAFE ON RELOAD) */
+  /* 🔐 AUTH + PROFILE */
   useEffect(() => {
     const auth = getAuth();
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) return navigate("/login");
+
+      const token = await user.getIdToken();
+      const res = await fetch("http://localhost:3000/supervisor/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const profile = await res.json();
+
+      if (profile.role !== "supervisor" || !profile.isApproved) {
         navigate("/login");
         return;
       }
 
-      try {
-        const idToken = await user.getIdToken();
-
-        const res = await fetch("http://localhost:3000/supervisor/profile", {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        });
-
-        if (!res.ok) throw new Error("Profile fetch failed");
-
-        const profile = await res.json();
-
-        if (profile.role !== "supervisor" || !profile.isApproved) {
-          navigate("/login");
-          return;
-        }
-
-        setSupervisor(profile);
-        setAuthLoading(false);
-      } catch (err) {
-        console.error("❌ Auth/Profile error:", err.message);
-        navigate("/login");
-      }
+      setSupervisor(profile);
     });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, [navigate]);
 
-  /* 🚨 FIRESTORE SOS LISTENER */
+  /* 🔥 ONGOING EVENTS (REGION SAFE) */
   useEffect(() => {
     if (!supervisor) return;
 
-    const sosQuery = query(
-      collection(db, "sos_alerts"),
-      where("status", "==", "active")
+    const q = query(
+      collection(db, "ongoingEvents"),
+      where("city", "==", supervisor.region),
+      where("is_resolved", "==", false)
     );
 
-    const unsubscribe = onSnapshot(
-      sosQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map((doc) => ({
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map((doc) => {
+        const d = doc.data();
+        const { lat, lng } = extractLatLng(d.location);
+
+        console.log("📍 EVENT:", doc.id, lat, lng); // DEBUG (IMPORTANT)
+
+        return {
           id: doc.id,
-          ...doc.data(),
-        }));
+          email: d.sos_clicked_by_email,
+          type: d.emergency_type,
+          lat,
+          lng,
+        };
+      });
 
-        setAlerts(data);
-        setActiveUsers(data.length);
-        setDataLoading(false);
-      },
-      (error) => {
-        console.error("❌ Firestore snapshot error:", error);
-        setDataLoading(false);
-      }
-    );
+      setAlerts(data);
+      setLoading(false);
+    });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, [supervisor]);
 
-  /* 📍 LOCATE VICTIM */
-  const handleLocateVictim = (lat, lng) => {
+  const locate = (lat, lng) => {
     if (!lat || !lng) return;
-    mapComponentRef.current?.focusLocation(lat, lng);
+    mapRef.current?.focusLocation(lat, lng);
   };
 
-  /* ⏳ GLOBAL LOADING */
-  if (authLoading || dataLoading || !supervisor) {
-    return <p style={{ padding: "20px" }}>Loading supervisor dashboard...</p>;
+  if (loading || !supervisor) {
+    return <p style={{ padding: 20 }}>Loading supervisor dashboard...</p>;
   }
 
   return (
@@ -102,263 +121,50 @@ const SupervisorDashboard = () => {
       <header className="dashboard-header">
         <h1>Supervisor Command Center</h1>
         <div className="header-stats">
-          <span>
-            Region: <strong>{supervisor.region}</strong>
-          </span>
-          <span>
-            Active Alerts: <strong>{activeUsers}</strong>
-          </span>
+          <span>Region: <strong>{supervisor.region}</strong></span>
+          <span>Active Events: <strong>{alerts.length}</strong></span>
         </div>
       </header>
 
-      <div className="dashboard-vertical-layout">
-        {/* 🗺️ MAP */}
-        <section className="map-frame-container">
-          <Map
-            ref={mapComponentRef}
-            alerts={alerts}
-            region={supervisor.region}
-          />
-        </section>
+      <section className="map-frame-container">
+        <Map ref={mapRef} alerts={alerts} region={supervisor.region} />
+      </section>
 
-        {/* 📋 ALERT TABLE */}
-        <section className="table-container">
-          <h2>Live Emergency Registry</h2>
+      <section className="table-container">
+        <h2>Ongoing Events</h2>
 
-          {alerts.length === 0 ? (
-            <p className="no-data">No active alerts.</p>
-          ) : (
-            <table className="alerts-table">
-              <thead>
-                <tr>
-                  <th>Victim</th>
-                  <th>Coordinates</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alerts.map((alert) => (
-                  <tr key={alert.id}>
-                    <td>{alert.userName || "Unknown"}</td>
-                    <td>
-                      {alert.lat?.toFixed(4)}, {alert.lng?.toFixed(4)}
-                    </td>
-                    <td>
-                      <span className="status-badge pulse">LIVE</span>
-                    </td>
-                    <td>
-                      <button
-                        className="locate-btn"
-                        onClick={() =>
-                          handleLocateVictim(alert.lat, alert.lng)
-                        }
-                      >
-                        Locate
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      </div>
+        <table className="alerts-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Coordinates</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {alerts.map((a) => (
+              <tr key={a.id}>
+                <td>{a.email}</td>
+                <td>{a.type}</td>
+                <td>
+                  {a.lat && a.lng ? `${a.lat}, ${a.lng}` : "N/A"}
+                </td>
+                <td>
+                  <button
+                    className="locate-btn"
+                    onClick={() => locate(a.lat, a.lng)}
+                  >
+                    Locate
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 };
 
 export default SupervisorDashboard;
-
-
-
-
-
-
-
-
-
-
-// import React, { useEffect, useState, useRef } from "react";
-// import { useNavigate } from "react-router-dom";
-// import { db } from "../../firebase/firebaseConfig";
-// import { collection, onSnapshot, query, where } from "firebase/firestore";
-// import { getAuth } from "firebase/auth";
-// import Map from "../dashboard/Map.jsx";
-// import "./SupervisorDashboard.css";
-
-// const SupervisorDashboard = () => {
-//   const navigate = useNavigate();
-//   const mapComponentRef = useRef(null);
-
-//   const [alerts, setAlerts] = useState([]);
-//   const [activeUsers, setActiveUsers] = useState(0);
-//   const [loading, setLoading] = useState(true);
-
-//   // ✅ Logged-in supervisor profile (from backend)
-//   const [supervisor, setSupervisor] = useState(null);
-
-//   /* 🔐 AUTH: ONLY CHECK FIREBASE USER */
-//   useEffect(() => {
-//     const auth = getAuth();
-
-//     const unsubscribe = auth.onAuthStateChanged((user) => {
-//       if (!user) {
-//         navigate("/login");
-//       }
-//     });
-
-//     return () => unsubscribe();
-//   }, [navigate]);
-
-//   /* 👤 FETCH SUPERVISOR PROFILE (ROLE + APPROVAL + REGION) */
-//   useEffect(() => {
-//     const fetchProfile = async () => {
-//       try {
-//         const auth = getAuth();
-//         const user = auth.currentUser;
-
-//         if (!user) return;
-
-//         const idToken = await user.getIdToken();
-
-//         const res = await fetch("http://localhost:3000/supervisor/profile", {
-//           headers: {
-//             Authorization: `Bearer ${idToken}`,
-//           },
-//         });
-
-//         if (!res.ok) throw new Error("Unauthorized");
-
-//         const data = await res.json();
-
-//         // 🔐 AUTHORITATIVE CHECK (BACKEND DATA)
-//         if (data.role !== "supervisor" || !data.isApproved) {
-//           navigate("/login");
-//           return;
-//         }
-
-//         setSupervisor(data);
-//       } catch (err) {
-//         console.error("❌ Fetch supervisor profile error:", err.message);
-//         navigate("/login");
-//       }
-//     };
-
-//     fetchProfile();
-//   }, [navigate]);
-
-//   /* 🚨 FIRESTORE: ACTIVE SOS ALERTS */
-//   useEffect(() => {
-//     const sosQuery = query(
-//       collection(db, "sos_alerts"),
-//       where("status", "==", "active")
-//     );
-
-//     const unsubscribe = onSnapshot(
-//       sosQuery,
-//       (snapshot) => {
-//         const data = snapshot.docs.map((doc) => ({
-//           id: doc.id,
-//           ...doc.data(),
-//         }));
-
-//         setAlerts(data);
-//         setActiveUsers(data.length);
-//         setLoading(false);
-//       },
-//       (error) => {
-//         console.error("❌ Firestore snapshot error:", error);
-//         setLoading(false);
-//       }
-//     );
-
-//     return () => unsubscribe();
-//   }, []);
-
-//   /* 📍 LOCATE VICTIM ON MAP */
-//   const handleLocateVictim = (lat, lng) => {
-//     if (!lat || !lng) return;
-
-//     if (mapComponentRef.current) {
-//       mapComponentRef.current.focusLocation(lat, lng);
-//       window.scrollTo({ top: 0, behavior: "smooth" });
-//     }
-//   };
-
-//   if (loading || !supervisor) {
-//     return <p style={{ padding: 20 }}>Loading supervisor dashboard…</p>;
-//   }
-
-//   return (
-//     <div className="dashboard-container">
-//       <header className="dashboard-header">
-//         <h1>Supervisor Command Center</h1>
-//         <div className="header-stats">
-//           <span>
-//             Region: <strong>{supervisor.region}</strong>
-//           </span>
-//           <span>
-//             Active Alerts: <strong>{activeUsers}</strong>
-//           </span>
-//         </div>
-//       </header>
-
-//       <div className="dashboard-vertical-layout">
-//         {/* 🗺️ MAP */}
-//         <section className="map-frame-container">
-//           <Map
-//             ref={mapComponentRef}
-//             alerts={alerts}
-//             region={supervisor.region}
-//           />
-//         </section>
-
-//         {/* 📋 ALERT TABLE */}
-//         <section className="table-container">
-//           <h2>Live Emergency Registry</h2>
-
-//           {alerts.length === 0 ? (
-//             <p className="no-data">No active alerts.</p>
-//           ) : (
-//             <table className="alerts-table">
-//               <thead>
-//                 <tr>
-//                   <th>Victim</th>
-//                   <th>Coordinates</th>
-//                   <th>Status</th>
-//                   <th>Action</th>
-//                 </tr>
-//               </thead>
-//               <tbody>
-//                 {alerts.map((alert) => (
-//                   <tr key={alert.id}>
-//                     <td>{alert.userName || "Unknown"}</td>
-//                     <td>
-//                       {alert.lat?.toFixed(4)}, {alert.lng?.toFixed(4)}
-//                     </td>
-//                     <td>
-//                       <span className="status-badge pulse">LIVE</span>
-//                     </td>
-//                     <td>
-//                       <button
-//                         className="locate-btn"
-//                         onClick={() =>
-//                           handleLocateVictim(alert.lat, alert.lng)
-//                         }
-//                       >
-//                         Locate
-//                       </button>
-//                     </td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           )}
-//         </section>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default SupervisorDashboard;

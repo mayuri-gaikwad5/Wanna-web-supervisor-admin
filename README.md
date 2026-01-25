@@ -79,3 +79,15 @@ npm run dev
 - Do not create multiple admins for same region
 - Region names must match across system (case-sensitive)
 - Always commit stable code before major changes
+
+### 📅 25 January 2026
+**Feature: Region-based Supervisor Map with Live Ongoing Events**
+- Supervisor dashboard now loads **region-specific map view**
+- Ongoing events are fetched live from **Firestore (ongoingEvents)**
+- Events are **filtered by city/region**
+- Each ongoing event is **pinned on the map**
+- Clicking a pin shows event details (SOS info)
+- Fixed Map SDK marker handling issue
+- Improved real-time snapshot listener stability
+
+✅ Status: Stable & working
