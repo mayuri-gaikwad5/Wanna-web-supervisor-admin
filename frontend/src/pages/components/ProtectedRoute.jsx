@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-const ProtectedRoute = ({ children, requiredRole }) => {
+const ProtectedRoute = ({ children, allowedRole }) => {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
   const isApproved = localStorage.getItem("isApproved");
@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   }
 
   // ❌ Role mismatch
-  if (requiredRole && role !== requiredRole) {
+  if (allowedRole && role !== allowedRole) {
     return <Navigate to="/login" replace />;
   }
 

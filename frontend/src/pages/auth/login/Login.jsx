@@ -85,7 +85,8 @@ const Login = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("region", data.region);
-      
+      localStorage.setItem("isApproved", "true");
+
       await fetch("http://localhost:3000/logs/create", {
         method: "POST",
         headers: {
