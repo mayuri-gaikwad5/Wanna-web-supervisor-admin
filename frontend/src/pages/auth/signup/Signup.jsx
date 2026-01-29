@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
-import { auth } from "../../../firebase/firebaseConfig";
+import { auth, db } from "../../../firebase/firebaseConfig"; // Added db
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore"; // Added Firestore methods
 
 import PasswordStrengthBar from "react-password-strength-bar";
 import "./Signup.css";
@@ -19,7 +20,6 @@ const Signup = () => {
     name: "",
     email: "",
     password: "",
-    region: "",
   });
 
   const [error, setError] = useState("");
@@ -39,7 +39,7 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      const { name, email, password, region } = formData;
+      const { name, email, password } = formData;
 
       // 1️⃣ Create Firebase Auth account
       const userCredential = await createUserWithEmailAndPassword(
@@ -53,71 +53,63 @@ const Signup = () => {
       // 2️⃣ Send email verification
       await sendEmailVerification(user);
 
-      // 3️⃣ Save supervisor in MongoDB
-      const response = await fetch(
-        "http://localhost:3000/supervisor/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            region,
-            firebaseUid: user.uid,
-          }),
-        }
-      );
+      // 3️⃣ Initialize Supervisor Document in Firestore
+      // We set region to null and isApproved to false to trigger onboarding flow
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name,
+        email,
+        role: "supervisor",
+        region: "",           // Left empty for Step 2
+        isApproved: false,    // Blocked until Admin action
+        createdAt: new Date(),
+      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.warn("MongoDB sync failed, but Firebase signup succeeded");
-      }
+      // 4️⃣ Optional: Keep your MongoDB sync if you still use it
+      await fetch("http://localhost:3000/supervisor/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          firebaseUid: user.uid,
+          // We no longer send region here; MongoDB can be updated later in Step 2
+        }),
+      });
 
       alert(
-        "Signup successful! Please verify your email. Admin approval is required before login."
+        "Account created! Please verify your email. You will be asked to select your region upon your first login."
       );
 
       navigate("/login");
     } catch (err) {
       console.error("Signup Error:", err);
-
       if (err.code === "auth/weak-password") {
         setError("Password is too weak.");
       } else if (err.code === "auth/email-already-in-use") {
-        setError("Email already registered.");
+        setError("This email is already registered.");
       } else {
         setError(err.message);
       }
     } finally {
       setLoading(false);
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        region: "",
-      });
     }
   };
 
- return (
+  return (
     <div className="signup-container">
       <div className="image-section">
-        <img src={signupimage} alt="Supervisor Illustration" className="Signup-image" />
+        <img src={signupimage} alt="Wana Welcome" className="Signup-image" />
       </div>
 
       <div className="form-section">
         <h2 className="heading">Create Supervisor Account</h2>
         <p style={{ color: '#64748b', marginBottom: '25px', fontSize: '0.95rem' }}>
-            Join our command network to start managing regional emergencies.
+            Register your identity to join our emergency command network.
         </p>
 
         <form onSubmit={handleSubmit}>
-          {error && (
-            <div className="error-msg">{error}</div>
-          )}
+          {error && <div className="error-msg">{error}</div>}
 
           <div className="form-group">
             <label className="label">Full Name</label>
@@ -126,7 +118,7 @@ const Signup = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Name"
+              placeholder="e.g. Mayuri Gaikwad"
               required
             />
           </div>
@@ -139,18 +131,6 @@ const Signup = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="name@company.com"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="label">Region Assignment</label>
-            <input
-              type="text"
-              name="region"
-              value={formData.region}
-              onChange={handleChange}
-              placeholder="e.g. Solapur, Maharashtra"
               required
             />
           </div>
@@ -173,11 +153,11 @@ const Signup = () => {
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? "Establishing Account..." : "Register as Supervisor"}
+            {loading ? "Establishing Identity..." : "Create Account"}
           </button>
           
           <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.85rem', color: '#64748b' }}>
-            Already have an account? <a href="/login" style={{ color: '#2563eb', fontWeight: '600', textDecoration: 'none' }}>Log In</a>
+            Already have an account? <Link to="/login" style={{ color: '#2563eb', fontWeight: '600', textDecoration: 'none' }}>Log In</Link>
           </p>
         </form>
       </div>

@@ -13,10 +13,8 @@ const authMiddleware = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
     const decodedToken = await admin.auth().verifyIdToken(token);
 
-    // 🔹 CHECK ADMIN FIRST
-    const adminUser = await Admin.findOne({
-      firebaseUid: decodedToken.uid,
-    });
+    // 1. Check for Admin
+    const adminUser = await Admin.findOne({ firebaseUid: decodedToken.uid });
 
     if (adminUser) {
       req.user = {
@@ -28,26 +26,22 @@ const authMiddleware = async (req, res, next) => {
       return next();
     }
 
-    // 🔹 THEN CHECK SUPERVISOR
-    const supervisor = await Supervisor.findOne({
-      firebaseUid: decodedToken.uid,
-    });
+    // 2. Check for Supervisor
+    const supervisor = await Supervisor.findOne({ firebaseUid: decodedToken.uid });
 
     if (!supervisor) {
       return res.status(404).json({ message: "Account not found" });
     }
 
-    if (!supervisor.isApproved) {
-      return res
-        .status(403)
-        .json({ message: "Account pending admin approval" });
-    }
+    // 🔥 REMOVED: !supervisor.isApproved check. 
+    // We let them pass so they can reach the /complete-profile route.
 
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
       role: "supervisor",
       region: supervisor.region,
+      isApproved: supervisor.isApproved, // Pass this flag to the route
     };
 
     console.log("✅ Authenticated user:", req.user);

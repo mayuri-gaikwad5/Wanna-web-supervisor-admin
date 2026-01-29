@@ -4,21 +4,19 @@ const Supervisor = require("../models/supervisor");
 
 /**
  * GET pending supervisors (REGION-WISE)
- * URL: /admin/supervisors/pending
  */
 router.get("/supervisors/pending", async (req, res) => {
   try {
-    // 🔐 Ensure admin only
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const adminRegion = req.user.region; // 🔥 KEY LINE
+    const adminRegion = req.user.region;
 
     const pendingSupervisors = await Supervisor.find({
       role: "supervisor",
       isApproved: false,
-      region: adminRegion, // 🔥 REGION FILTER
+      region: adminRegion, // Admin only sees requests for their own region
     }).select("-__v");
 
     res.status(200).json(pendingSupervisors);
@@ -28,6 +26,9 @@ router.get("/supervisors/pending", async (req, res) => {
   }
 });
 
+/**
+ * GET approved supervisors (REGION-WISE)
+ */
 router.get("/supervisors/approved", async (req, res) => {
   try {
     if (req.user.role !== "admin")
@@ -44,6 +45,10 @@ router.get("/supervisors/approved", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+/**
+ * REVOKE supervisor access (WITH PROFILE RESET)
+ */
 router.patch("/supervisors/:id/revoke", async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -55,25 +60,25 @@ router.patch("/supervisors/:id/revoke", async (req, res) => {
       return res.status(404).json({ message: "Supervisor not found" });
     }
 
-    // Prevent cross-region revoke
     if (supervisor.region !== req.user.region) {
       return res.status(403).json({ message: "You cannot revoke supervisors from another region" });
     }
 
-    supervisor.isApproved = false;  // 🔥 Soft revoke
+    // 🔥 THE CRITICAL CHANGE: Clear the region
+    // This pushes them back to the onboarding step in the frontend logic
+    supervisor.isApproved = false;
+    supervisor.region = ""; 
     await supervisor.save();
 
-    res.json({ message: "Supervisor access revoked successfully", supervisor });
+    res.json({ message: "Supervisor access revoked and profile reset successfully", supervisor });
   } catch (err) {
-    console.error("Soft revoke error:", err.message);
+    console.error("Revoke/Reset error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-
 /**
  * APPROVE supervisor
- * URL: /admin/supervisors/:id/approve
  */
 router.patch("/supervisors/:id/approve", async (req, res) => {
   try {
@@ -87,7 +92,6 @@ router.patch("/supervisors/:id/approve", async (req, res) => {
       return res.status(404).json({ message: "Supervisor not found" });
     }
 
-    // 🔒 Prevent cross-region approval
     if (supervisor.region !== req.user.region) {
       return res.status(403).json({
         message: "You cannot approve supervisors from another region",
@@ -108,61 +112,3 @@ router.patch("/supervisors/:id/approve", async (req, res) => {
 });
 
 module.exports = router;
-
-
-
-
-
-
-// const express = require("express");
-// const router = express.Router();
-// const Supervisor = require("../models/supervisor");
-
-// /**
-//  * GET all pending supervisors
-//  * URL: /admin/supervisors/pending
-//  */
-// router.get("/supervisors/pending", async (req, res) => {
-//   try {
-//     // Only admins should reach here (middleware already checks role)
-//     const pendingSupervisors = await Supervisor.find({
-//       role: "supervisor",
-//       isApproved: false,
-//     }).select("-__v");
-
-//     res.status(200).json(pendingSupervisors);
-//   } catch (err) {
-//     console.error("Fetch pending supervisors error:", err.message);
-//     res.status(500).json({ message: "Failed to fetch pending supervisors" });
-//   }
-// });
-
-// /**
-//  * APPROVE supervisor
-//  * URL: /admin/supervisors/:id/approve
-//  */
-// router.patch("/supervisors/:id/approve", async (req, res) => {
-//   try {
-//     const supervisorId = req.params.id;
-
-//     const updated = await Supervisor.findByIdAndUpdate(
-//       supervisorId,
-//       { isApproved: true },
-//       { new: true }
-//     );
-
-//     if (!updated) {
-//       return res.status(404).json({ message: "Supervisor not found" });
-//     }
-
-//     res.status(200).json({
-//       message: "Supervisor approved successfully",
-//       supervisor: updated,
-//     });
-//   } catch (err) {
-//     console.error("Approve supervisor error:", err.message);
-//     res.status(500).json({ message: "Approval failed" });
-//   }
-// });
-
-// module.exports = router;

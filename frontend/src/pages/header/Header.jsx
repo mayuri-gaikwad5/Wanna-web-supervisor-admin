@@ -1,24 +1,41 @@
 import React, { useEffect, useState } from "react";
-import { Container, Nav, Navbar } from "react-bootstrap";
-import { useLocation, Link } from "react-router-dom";
-import logo from "../../assets/logo.png"; //
+import { Container, Nav, Navbar, Button } from "react-bootstrap";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { getAuth, signOut } from "firebase/auth";
+import logo from "../../assets/logo.png";
 
 const Header = () => {
-  const location = useLocation(); //
+  const location = useLocation();
+  const navigate = useNavigate();
+  const auth = getAuth();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [role, setRole] = useState(null); //
+  const [role, setRole] = useState(null);
 
   useEffect(() => {
-    // Check authentication status and role from local storage
     const token = localStorage.getItem("token");
     const storedRole = localStorage.getItem("role");
 
     setIsLoggedIn(Boolean(token));
     setRole(storedRole);
-  }, [location]); // Re-run effect on route changes to keep UI in sync
+  }, [location]);
 
-  // Logic to determine the correct dashboard base path based on user role
+  // 🔥 Helper to hide nav links during onboarding/pending states
+  const isRestrictedState = 
+    location.pathname === "/complete-profile" || 
+    location.pathname === "/pending-approval";
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      localStorage.clear();
+      setIsLoggedIn(false);
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   const getDashboardPath = () => {
     if (role === "admin") return "/admin/approval";
     if (role === "supervisor") return "/supervisor/dashboard";
@@ -26,7 +43,7 @@ const Header = () => {
   };
 
   return (
-    <Navbar bg="dark" variant="dark" expand="lg">
+    <Navbar bg="dark" variant="dark" expand="lg" className="shadow-sm">
       <Container>
         <Navbar.Brand as={Link} to="/home">
           <img
@@ -34,23 +51,23 @@ const Header = () => {
             alt="Logo"
             width="30"
             height="30"
-            className="d-inline-block align-top"
-          />{" "}
+            className="d-inline-block align-top me-2"
+          />
           WANA
         </Navbar.Brand>
 
-        <Navbar.Toggle />
-        <Navbar.Collapse>
+        <Navbar.Toggle aria-controls="basic-navbar-nav" />
+        <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link as={Link} to="/home">Home</Nav.Link>
 
-            {isLoggedIn && (
+            {/* Only show these if logged in AND NOT in a restricted onboarding state */}
+            {isLoggedIn && !isRestrictedState && (
               <>
                 <Nav.Link as={Link} to={getDashboardPath()}>
                   Dashboard
                 </Nav.Link>
                 
-                {/* NEW: Explicitly add History tab only for supervisors */}
                 {role === "supervisor" && (
                   <Nav.Link as={Link} to="/supervisor/history">
                     History
@@ -64,10 +81,20 @@ const Header = () => {
             {!isLoggedIn ? (
               <>
                 <Nav.Link as={Link} to="/login">Login</Nav.Link>
-                <Nav.Link as={Link} to="/register">Sign Up</Nav.Link>
+                <Nav.Link as={Link} to="/register" className="btn btn-primary text-white ms-lg-2 px-3">
+                  Sign Up
+                </Nav.Link>
               </>
             ) : (
-              <Nav.Link as={Link} to="/logout">Logout</Nav.Link>
+              // Explicitly styled Logout button that works even in restricted states
+              <Button 
+                variant="outline-light" 
+                size="sm" 
+                className="ms-lg-3"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
             )}
           </Nav>
         </Navbar.Collapse>

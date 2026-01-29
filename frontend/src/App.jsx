@@ -19,6 +19,10 @@ import AdminLogs from './pages/admin/AdminLogs.jsx';
 import SupervisorDashboard from './pages/supervisor/SupervisorDashboard.jsx';
 import AdminApproval from './pages/admin/AdminApproval.jsx';
 
+// NEW: Lifecycle Pages for Supervisors
+import CompleteProfile from './pages/supervisor/CompleteProfile.jsx'; 
+import PendingApproval from './pages/supervisor/PendingApproval.jsx'; 
+
 // Route Guard
 import ProtectedRoute from './pages/components/ProtectedRoute.jsx';
 
@@ -27,12 +31,51 @@ function App() {
     <>
       <Header />
       <Routes>
-        {/* Public Routes */}
+        {/* --- Public Routes --- */}
         <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Signup />} />
 
-        {/* Admin Routes */}
+        {/* --- Supervisor Lifecycle Routes --- */}
+        {/* These routes are accessed via ProtectedRoute but don't require "isApproved" yet */}
+        <Route
+          path="/complete-profile"
+          element={
+            <ProtectedRoute allowedRole="supervisor">
+              <CompleteProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pending-approval"
+          element={
+            <ProtectedRoute allowedRole="supervisor">
+              <PendingApproval />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* --- Fully Protected Supervisor Routes --- */}
+        {/* ProtectedRoute will now check if profile is complete AND approved */}
+        <Route
+          path="/supervisor/dashboard"
+          element={
+            <ProtectedRoute allowedRole="supervisor">
+              <SupervisorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/supervisor/history"
+          element={
+            <ProtectedRoute allowedRole="supervisor">
+              <History />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* --- Admin Routes --- */}
         <Route
           path="/admin/approval"
           element={
@@ -51,27 +94,7 @@ function App() {
           }
         />
 
-        {/* Supervisor Routes */}
-        <Route
-          path="/supervisor/dashboard"
-          element={
-            <ProtectedRoute allowedRole="supervisor">
-              <SupervisorDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* UPDATED: History Route aligned with Header link */}
-        <Route
-          path="/supervisor/history"
-          element={
-            <ProtectedRoute allowedRole="supervisor">
-              <History />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Shared Protected Routes */}
+        {/* --- Shared / User Routes --- */}
         <Route
           path="/dashboard"
           element={
@@ -99,7 +122,7 @@ function App() {
           }
         />
 
-        {/* Redirects */}
+        {/* --- Fallbacks --- */}
         <Route path="/" element={<Navigate to="/home" />} />
         <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
