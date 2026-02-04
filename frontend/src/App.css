@@ -36,3 +36,34 @@
     transform: rotate(360deg);
   }
 }
+
+.hero {
+  width: 100%;
+  min-height: 87vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin-top: -56px;
+}
+
+
+/* Mobile */
+@media (max-width: 768px) {
+  .hero {
+    min-height: 45vh;
+    background-size: contain;
+  }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hero {
+    min-height: 65vh;
+    background-size: contain;
+  }
+}
+
+
