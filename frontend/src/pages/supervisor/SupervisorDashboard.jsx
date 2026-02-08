@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { db } from "../../firebase/firebaseConfig";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -112,56 +112,30 @@ const SupervisorDashboard = () => {
     mapRef.current?.focusLocation(lat, lng);
   };
 
+  /* 🔥 HANDLE "LOCATE" NAVIGATION FROM ONGOING EVENTS */
+  const location = useLocation(); // Hook to access state passed from navigate
+
+  useEffect(() => {
+    if (location.state && location.state.focusLat && location.state.focusLng) {
+      const { focusLat, focusLng } = location.state;
+      // Small timeout to allow map to load if needed
+      setTimeout(() => {
+        mapRef.current?.focusLocation(focusLat, focusLng);
+      }, 500);
+
+      // Clear state to prevent re-focusing on refresh (optional, but good practice)
+      // window.history.replaceState({}, document.title); 
+    }
+  }, [location]);
+
   if (loading || !supervisor) {
     return <p style={{ padding: 20 }}>Loading supervisor dashboard...</p>;
   }
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1>Supervisor Command Center</h1>
-        <div className="header-stats">
-          <span>Region: <strong>{supervisor.region}</strong></span>
-          <span>Active Events: <strong>{alerts.length}</strong></span>
-        </div>
-      </header>
-
-      <section className="map-frame-container">
+    <div className="dashboard-container-full">
+      <section className="map-frame-container-full">
         <Map ref={mapRef} alerts={alerts} region={supervisor.region} />
-      </section>
-
-      <section className="table-container">
-        <h2>Ongoing Events</h2>
-
-        <table className="alerts-table">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Type</th>
-              <th>Coordinates</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {alerts.map((a) => (
-              <tr key={a.id}>
-                <td>{a.email}</td>
-                <td>{a.type}</td>
-                <td>
-                  {a.lat && a.lng ? `${a.lat}, ${a.lng}` : "N/A"}
-                </td>
-                <td>
-                  <button
-                    className="locate-btn"
-                    onClick={() => locate(a.lat, a.lng)}
-                  >
-                    Locate
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </section>
     </div>
   );

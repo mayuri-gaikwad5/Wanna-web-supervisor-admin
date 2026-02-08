@@ -21,8 +21,8 @@ const Header = () => {
   }, [location]);
 
   // 🔥 Helper to hide nav links during onboarding/pending states
-  const isRestrictedState = 
-    location.pathname === "/complete-profile" || 
+  const isRestrictedState =
+    location.pathname === "/complete-profile" ||
     location.pathname === "/pending-approval";
 
   const handleLogout = async () => {
@@ -67,11 +67,16 @@ const Header = () => {
                 <Nav.Link as={Link} to={getDashboardPath()}>
                   Dashboard
                 </Nav.Link>
-                
+
                 {role === "supervisor" && (
-                  <Nav.Link as={Link} to="/supervisor/history">
-                    History
-                  </Nav.Link>
+                  <>
+                    <Nav.Link as={Link} to="/supervisor/ongoing-events">
+                      Ongoing Events
+                    </Nav.Link>
+                    <Nav.Link as={Link} to="/supervisor/history">
+                      History
+                    </Nav.Link>
+                  </>
                 )}
               </>
             )}
@@ -87,9 +92,9 @@ const Header = () => {
               </>
             ) : (
               // Explicitly styled Logout button that works even in restricted states
-              <Button 
-                variant="outline-light" 
-                size="sm" 
+              <Button
+                variant="outline-light"
+                size="sm"
                 className="ms-lg-3"
                 onClick={handleLogout}
               >

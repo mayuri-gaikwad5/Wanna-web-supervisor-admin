@@ -20,8 +20,11 @@ import SupervisorDashboard from './pages/supervisor/SupervisorDashboard.jsx';
 import AdminApproval from './pages/admin/AdminApproval.jsx';
 
 // NEW: Lifecycle Pages for Supervisors
-import CompleteProfile from './pages/supervisor/CompleteProfile.jsx'; 
-import PendingApproval from './pages/supervisor/PendingApproval.jsx'; 
+import CompleteProfile from './pages/supervisor/CompleteProfile.jsx';
+import PendingApproval from './pages/supervisor/PendingApproval.jsx';
+
+// NEW: Ongoing Events Page
+import OngoingEvents from './pages/supervisor/OngoingEvents.jsx';
 
 // Route Guard
 import ProtectedRoute from './pages/components/ProtectedRoute.jsx';
@@ -62,6 +65,15 @@ function App() {
           element={
             <ProtectedRoute allowedRole="supervisor">
               <SupervisorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/supervisor/ongoing-events"
+          element={
+            <ProtectedRoute allowedRole="supervisor">
+              <OngoingEvents />
             </ProtectedRoute>
           }
         />
