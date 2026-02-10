@@ -27,7 +27,7 @@ const Header = () => {
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
-      <Container>
+      <Container fluid>
         <Navbar.Brand as={Link} to="/home">
           <img
             src={logo}
@@ -39,8 +39,8 @@ const Header = () => {
           WANA
         </Navbar.Brand>
 
-        <Navbar.Toggle />
-        <Navbar.Collapse>
+        <Navbar.Toggle aria-controls="basic-navbar-nav" />
+        <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link as={Link} to="/home">Home</Nav.Link>
 
@@ -50,11 +50,19 @@ const Header = () => {
                   Dashboard
                 </Nav.Link>
                 
-                {/* NEW: Explicitly add History tab only for supervisors */}
+                {/* Supervisor-specific navigation */}
                 {role === "supervisor" && (
-                  <Nav.Link as={Link} to="/supervisor/history">
-                    History
-                  </Nav.Link>
+                  <>
+                    <Nav.Link as={Link} to="/supervisor/ongoing-events">
+                      Ongoing Events
+                    </Nav.Link>
+                    <Nav.Link as={Link} to="/supervisor/acceptors">
+                      Acceptors
+                    </Nav.Link>
+                    <Nav.Link as={Link} to="/supervisor/history">
+                      History
+                    </Nav.Link>
+                  </>
                 )}
               </>
             )}

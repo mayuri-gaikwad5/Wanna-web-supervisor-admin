@@ -156,5 +156,82 @@
     .form-section { max-width: 100%; width: 100%; }
 }
 
+@media (max-width: 768px) {
+    .signup-container {
+        padding: 15px;
+    }
+
+    .form-section {
+        padding: 30px 25px;
+        border-radius: 20px;
+    }
+
+    .heading {
+        font-size: 1.75rem;
+    }
+
+    .form-section::before {
+        font-size: 0.8rem;
+    }
+
+    .form-group input {
+        padding: 11px 14px;
+        font-size: 0.95rem;
+    }
+
+    .form-section button {
+        padding: 13px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .signup-container {
+        padding: 10px;
+        min-height: 100vh;
+    }
+
+    .form-section {
+        padding: 25px 20px;
+        border-radius: 16px;
+    }
+
+    .heading {
+        font-size: 1.5rem;
+        margin-bottom: 6px;
+    }
+
+    .form-section::before {
+        font-size: 0.75rem;
+        margin-bottom: 3px;
+    }
+
+    .label {
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group input {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        min-height: 44px; /* Touch-friendly */
+    }
+
+    .form-section button {
+        padding: 12px;
+        font-size: 0.9rem;
+        min-height: 44px; /* Touch-friendly */
+    }
+
+    .error-msg {
+        font-size: 0.8rem;
+        padding: 10px;
+    }
+}
+
 
 

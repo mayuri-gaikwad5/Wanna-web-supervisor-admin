@@ -17,6 +17,8 @@ import AdminLogs from './pages/admin/AdminLogs.jsx';
 
 // Supervisor & Admin
 import SupervisorDashboard from './pages/supervisor/SupervisorDashboard.jsx';
+import OngoingEvents from './pages/supervisor/OngoingEvents.jsx';
+import AcceptorEvents from './pages/supervisor/AcceptorEvents.jsx';
 import AdminApproval from './pages/admin/AdminApproval.jsx';
 
 // Route Guard
@@ -57,6 +59,24 @@ function App() {
           element={
             <ProtectedRoute allowedRole="supervisor">
               <SupervisorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/supervisor/ongoing-events"
+          element={
+            <ProtectedRoute allowedRole="supervisor">
+              <OngoingEvents />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/supervisor/acceptors"
+          element={
+            <ProtectedRoute allowedRole="supervisor">
+              <AcceptorEvents />
             </ProtectedRoute>
           }
         />

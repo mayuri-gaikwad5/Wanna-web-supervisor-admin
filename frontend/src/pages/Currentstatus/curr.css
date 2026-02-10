@@ -21,4 +21,37 @@ table {
   tr:hover {
     background-color: #f1f1f1;
   }
+
+/* === RESPONSIVE STYLES === */
+@media (max-width: 768px) {
+  table {
+    font-size: 0.9rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  th, td {
+    padding: 10px 8px;
+  }
+
+  th {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  table {
+    font-size: 0.8rem;
+  }
+
+  th, td {
+    padding: 8px 6px;
+  }
+
+  th {
+    font-size: 0.8rem;
+  }
+}
   

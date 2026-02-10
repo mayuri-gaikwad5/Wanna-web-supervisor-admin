@@ -163,3 +163,79 @@
     padding: 40px 30px;
   }
 }
+
+@media (max-width: 768px) {
+  .login-page {
+    padding: 20px;
+  }
+
+  .login-card {
+    padding: 35px 25px;
+  }
+
+  .login-card h2 {
+    font-size: 26px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .input-group input {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .primary-btn {
+    padding: 12px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-page {
+    padding: 15px;
+    min-height: 100vh;
+  }
+
+  .login-card {
+    padding: 30px 20px;
+  }
+
+  .login-card h2 {
+    font-size: 24px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    margin-bottom: 25px;
+  }
+
+  .input-group {
+    margin-bottom: 18px;
+  }
+
+  .input-group label {
+    font-size: 13px;
+  }
+
+  .input-group input {
+    padding: 11px 12px;
+    font-size: 14px;
+    min-height: 44px; /* Touch-friendly */
+  }
+
+  .primary-btn {
+    padding: 12px;
+    font-size: 14px;
+    min-height: 44px; /* Touch-friendly */
+  }
+
+  .link-btn {
+    font-size: 13px;
+  }
+
+  .footer-links {
+    font-size: 13px;
+  }
+}
