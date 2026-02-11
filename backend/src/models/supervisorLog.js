@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 
 const supervisorLogSchema = new mongoose.Schema({
-  supervisorUid: { type: String, required: true },
+  // Using supervisorUid to match your schema preference
+  supervisorUid: { type: String, required: true }, 
   email: { type: String, required: true },
 
   eventType: {
@@ -12,6 +13,7 @@ const supervisorLogSchema = new mongoose.Schema({
 
   actionDescription: { type: String, default: "" },
 
+  // Region is required so the Solapur Admin can filter this log
   region: { type: String, required: true },
 
   timestamp: {

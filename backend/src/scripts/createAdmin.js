@@ -5,7 +5,7 @@ async function createAdmin() {
     {
       name: "WANA Solapur Admin",
       email: "admin.solapur@wana.com",
-      firebaseUid: "QXycBZ5j9zMa9prErOuFK5auQxF2",
+      firebaseUid: "W9DLMfqrWrSYN27VjLMrXXD6O983",
       region: "Solapur",
     },
     {

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { auth } from "../../../firebase/firebaseConfig";
 import loginImg from "../../../assets/Login.png";
-
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -14,7 +13,6 @@ import "./Login.css";
 
 const Login = () => {
   const navigate = useNavigate();
-
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -27,8 +25,12 @@ const Login = () => {
 
   const handleForgotPassword = async () => {
     if (!formData.email) return setError("Enter email first");
-    await sendPasswordResetEmail(auth, formData.email);
-    setMessage("Password reset email sent");
+    try {
+      await sendPasswordResetEmail(auth, formData.email);
+      setMessage("Password reset email sent");
+    } catch (err) {
+      setError("Failed to send reset email.");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -38,55 +40,44 @@ const Login = () => {
     setMessage("");
 
     try {
-      // 🔐 Firebase login
+      // 1️⃣ Firebase Auth login
       const cred = await signInWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
-
       const user = cred.user;
 
-      // 🔎 Ask backend who this user is
-      const res = await fetch(
-        `http://localhost:3000/auth/status/${user.uid}`
-      );
-
+      // 2️⃣ Fetch role and region from the unified Auth status route
+      const res = await fetch(`http://localhost:3000/auth/status/${user.uid}`);
+      
       if (!res.ok) {
-        throw new Error("Account not found");
+        throw new Error("Account record not found in system database.");
       }
-
       const data = await res.json();
 
-      /**
-       * 🚨 EMAIL VERIFICATION RULE
-       * ❌ Supervisor → MUST verify email
-       * ✅ Admin → NO email verification required
-       */
+      // 3️⃣ Email Verification Rule (Ignore for Admins)
       if (!user.emailVerified && data.role !== "admin") {
-        setError("Email not verified");
+        setError("Please verify your email address.");
         setShowResend(true);
         setUnverifiedUser(user);
-        await signOut(auth);
+        await signOut(auth); 
+        setLoading(false);
         return;
       }
 
-      /**
-       * 🚨 APPROVAL RULE (Supervisor only)
-       */
-      if (data.role === "supervisor" && !data.isApproved) {
-        setError("Awaiting admin approval");
-        await signOut(auth);
-        return;
-      }
-
-      // ✅ Save auth session
+      // 4️⃣ Success Logic: Set session storage
       const token = await user.getIdToken();
       localStorage.setItem("token", token);
       localStorage.setItem("role", data.role);
-      localStorage.setItem("region", data.region);
-      localStorage.setItem("isApproved", "true");
+      
+      // Store region so other components (Header/Logs) can use it
+      if (data.region) {
+        localStorage.setItem("region", data.region);
+      }
 
+      // 5️⃣ Create Audit Log (Login Event)
+      // Tagging with region ensures the Solapur Admin can see this log
       await fetch("http://localhost:3000/logs/create", {
         method: "POST",
         headers: {
@@ -95,18 +86,25 @@ const Login = () => {
         },
         body: JSON.stringify({
           eventType: "login",
-          actionDescription: "Supervisor logged in",
+          actionDescription: `User (${user.email}) logged into the system`,
+          region: data.region || "", // Crucial for Admin filtering
         }),
       });
 
-      // 🚀 Redirect
-      navigate(
-        data.role === "admin"
-          ? "/admin/approval"
-          : "/supervisor/dashboard"
-      );
+      // 6️⃣ Directional Logic
+      if (data.role === "admin") {
+        navigate("/admin/approval");
+      } else {
+        // ProtectedRoute will handle onboarding checks for supervisors
+        navigate("/supervisor/dashboard");
+      }
     } catch (err) {
-      setError(err.message);
+      console.error("Login Error:", err);
+      let displayError = err.message;
+      if (err.message.includes("auth/invalid-credential")) {
+        displayError = "Invalid email or password.";
+      }
+      setError(displayError);
     } finally {
       setLoading(false);
     }
@@ -114,9 +112,13 @@ const Login = () => {
 
   const handleResendVerification = async () => {
     if (!unverifiedUser) return;
-    await sendEmailVerification(unverifiedUser);
-    setMessage("Verification email resent");
-    setShowResend(false);
+    try {
+      await sendEmailVerification(unverifiedUser);
+      setMessage("Verification email sent! Check your inbox.");
+      setShowResend(false);
+    } catch (err) {
+      setError("Failed to resend. Try again later.");
+    }
   };
 
   return (
@@ -125,24 +127,21 @@ const Login = () => {
         <div className="login-image">
           <img src={loginImg} alt="login" />
         </div>
-
         <div className="login-card">
           <h2>Welcome Back</h2>
-          <p className="subtitle">Login to your account</p>
-
+          <p className="subtitle">Enter your credentials to access WANA</p>
           <form onSubmit={handleSubmit}>
             <div className="input-group">
-              <label>Email</label>
+              <label>Work Email</label>
               <input
                 type="email"
                 name="email"
-                placeholder="you@example.com"
+                placeholder="you@company.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
               />
             </div>
-
             <div className="input-group">
               <label>Password</label>
               <input
@@ -154,32 +153,20 @@ const Login = () => {
                 required
               />
             </div>
-
             {error && <div className="error-msg">{error}</div>}
             {message && <div className="success-msg">{message}</div>}
-
             {showResend && (
-              <button
-                type="button"
-                className="link-btn"
-                onClick={handleResendVerification}
-              >
+              <button type="button" className="link-btn" onClick={handleResendVerification}>
                 Resend Verification Email
               </button>
             )}
-
             <button className="primary-btn" disabled={loading}>
-              {loading ? "Verifying..." : "Login"}
+              {loading ? "Authenticating..." : "Login"}
             </button>
           </form>
-
           <div className="footer-links">
-            <button onClick={handleForgotPassword} className="link-btn">
-              Forgot Password?
-            </button>
-            <p>
-              Don’t have an account? <Link to="/register">Sign Up</Link>
-            </p>
+            <button onClick={handleForgotPassword} className="link-btn">Forgot Password?</button>
+            <p>Don’t have an account? <Link to="/register">Sign Up</Link></p>
           </div>
         </div>
       </div>
