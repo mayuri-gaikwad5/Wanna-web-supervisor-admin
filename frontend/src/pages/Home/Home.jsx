@@ -1,21 +1,17 @@
 import React from 'react';
 import file from '../../assets/file.png'
+import './Home.css';
+
 const Home = () => {
   return (
-    <div
-      style={{
-        margin: "10px",
-        padding: "10px",
-        width: "97vw",
-        height: "87vh",
-        borderRadius: "0", // Remove border radius for full page
-        boxShadow: "none", // Remove box shadow for full page
-        backgroundImage: `url(${file})`, // Set the background image
-        backgroundSize: "cover", // Ensure the image covers the entire div
-        backgroundPosition: "center", // Center the image
-        backgroundRepeat: "no-repeat", // Prevent tiling of the image
-      }}
-    ></div>
+    <div className="home-container">
+      <div className="home-background">
+        <div className="home-text-overlay">
+          <h1 className="home-title">Welcome to Wana</h1>
+          <p className="home-subtitle">A new way for women to stay safe and connected.</p>
+        </div>
+      </div>
+    </div>
   );
 };
 

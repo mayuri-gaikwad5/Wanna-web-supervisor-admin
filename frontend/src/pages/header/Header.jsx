@@ -43,8 +43,8 @@ const Header = () => {
   };
 
   return (
-    <Navbar bg="dark" variant="dark" expand="lg" className="shadow-sm">
-      <Container>
+    <Navbar bg="dark" variant="dark" expand="lg">
+      <Container fluid>
         <Navbar.Brand as={Link} to="/home">
           <img
             src={logo}
@@ -68,10 +68,19 @@ const Header = () => {
                   Dashboard
                 </Nav.Link>
                 
+                {/* Supervisor-specific navigation */}
                 {role === "supervisor" && (
-                  <Nav.Link as={Link} to="/supervisor/history">
-                    History
-                  </Nav.Link>
+                  <>
+                    <Nav.Link as={Link} to="/supervisor/ongoing-events">
+                      Ongoing Events
+                    </Nav.Link>
+                    <Nav.Link as={Link} to="/supervisor/acceptors">
+                      Acceptors
+                    </Nav.Link>
+                    <Nav.Link as={Link} to="/supervisor/history">
+                      History
+                    </Nav.Link>
+                  </>
                 )}
               </>
             )}

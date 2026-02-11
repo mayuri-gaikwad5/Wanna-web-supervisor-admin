@@ -1,18 +1,14 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase/firebaseConfig";
 import { collection, onSnapshot, query, where, getDocs, doc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import Map from "../dashboard/Map.jsx";
 import "./SupervisorDashboard.css";
 
 /* 🔥 UNIVERSAL LOCATION PARSER */
 const extractLatLng = (location) => {
-  if (!location) {
-    return { lat: null, lng: null };
-  }
-  
-  // Case 1: Firestore GeoPoint
+  if (!location) return { lat: null, lng: null };
+
   if (location.latitude !== undefined && location.longitude !== undefined) {
     return {
       lat: location.latitude,
@@ -20,7 +16,6 @@ const extractLatLng = (location) => {
     };
   }
 
-  // Case 2: Object { lat, lng }
   if (location.lat !== undefined && location.lng !== undefined) {
     return {
       lat: Number(location.lat),
@@ -28,32 +23,21 @@ const extractLatLng = (location) => {
     };
   }
 
-  // Case 3: Array ["17.65° N", "75.94° E"] or [17.65, 75.94]
   if (Array.isArray(location) && location.length === 2) {
-    // Check if it's already numbers
     if (typeof location[0] === 'number' && typeof location[1] === 'number') {
       return { lat: location[0], lng: location[1] };
     }
     
-    // Parse string format
-    const lat = parseFloat(
-      location[0].toString().replace(/[^\d.-]/g, "")
-    );
-    const lng = parseFloat(
-      location[1].toString().replace(/[^\d.-]/g, "")
-    );
-
+    const lat = parseFloat(location[0].toString().replace(/[^\d.-]/g, ""));
+    const lng = parseFloat(location[1].toString().replace(/[^\d.-]/g, ""));
     return { lat, lng };
   }
 
   return { lat: null, lng: null };
 };
 
-const SupervisorDashboard = () => {
+const AcceptorEvents = () => {
   const navigate = useNavigate();
-  const mapRef = useRef(null);
-  const mapContainerRef = useRef(null); // Reference to map container for scrolling
-
   const [alerts, setAlerts] = useState([]);
   const [acceptors, setAcceptors] = useState([]);
   const [supervisor, setSupervisor] = useState(null);
@@ -117,11 +101,7 @@ const SupervisorDashboard = () => {
 
   /* 👥 FETCH ACCEPTORS FOR ONGOING EVENTS */
   useEffect(() => {
-    if (!supervisor) {
-      return;
-    }
-    
-    if (alerts.length === 0) {
+    if (!supervisor || alerts.length === 0) {
       setAcceptors([]);
       return;
     }
@@ -130,7 +110,6 @@ const SupervisorDashboard = () => {
       const acceptorsList = [];
 
       try {
-        // For each alert, check if there's an acceptedEvents document with that ID
         for (const alert of alerts) {
           const acceptedEventDocRef = doc(db, "acceptedEvents", alert.id);
           const acceptorsCollectionRef = collection(acceptedEventDocRef, "acceptors");
@@ -141,27 +120,23 @@ const SupervisorDashboard = () => {
             if (!acceptorsSnapshot.empty) {
               acceptorsSnapshot.forEach((acceptorDoc) => {
                 const acceptorData = acceptorDoc.data();
-
-                // Use userLocation for acceptor's actual position
                 const { lat, lng } = extractLatLng(acceptorData.userLocation);
 
-                if (lat && lng) {
-                  const uniqueId = `${acceptorDoc.id}_${alert.id}`;
-                  acceptorsList.push({
-                    id: uniqueId,
-                    acceptorDocId: acceptorDoc.id,
-                    eventId: alert.id,
-                    name: acceptorData.name,
-                    email: acceptorData.email,
-                    acceptedAt: acceptorData.acceptedAt,
-                    lat,
-                    lng,
-                  });
-                }
+                const uniqueId = `${acceptorDoc.id}_${alert.id}`;
+                acceptorsList.push({
+                  id: uniqueId,
+                  acceptorDocId: acceptorDoc.id,
+                  eventId: alert.id,
+                  name: acceptorData.name,
+                  email: acceptorData.email,
+                  acceptedAt: acceptorData.acceptedAt,
+                  lat,
+                  lng,
+                });
               });
             }
           } catch (error) {
-            // Silently handle errors for individual events
+            console.log("Error fetching acceptors for event:", alert.id);
           }
         }
 
@@ -174,94 +149,21 @@ const SupervisorDashboard = () => {
     fetchAcceptors();
   }, [alerts, supervisor]);
 
-  const locate = (lat, lng) => {
-    if (!lat || !lng) return;
-    
-    // Scroll to top of page
-    window.scrollTo({ 
-      top: 0, 
-      behavior: 'smooth' 
-    });
-    
-    // Focus on location after a short delay to allow scroll to complete
-    setTimeout(() => {
-      mapRef.current?.focusLocation(lat, lng);
-    }, 500);
-  };
-
   if (loading || !supervisor) {
-    return <p style={{ padding: 20 }}>Loading supervisor dashboard...</p>;
+    return <p style={{ padding: 20 }}>Loading acceptor events...</p>;
   }
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>Supervisor Command Center</h1>
+        <h1>Acceptors (People Responding)</h1>
         <div className="header-stats">
           <span>Region: <strong>{supervisor.region}</strong></span>
-          <span>Active Events: <strong>{alerts.length}</strong></span>
-          <span>Responders: <strong>{acceptors.length}</strong></span>
+          <span>Total Responders: <strong>{acceptors.length}</strong></span>
         </div>
       </header>
 
-      <section className="map-frame-container" ref={mapContainerRef}>
-        <Map ref={mapRef} alerts={alerts} acceptors={acceptors} region={supervisor.region} />
-      </section>
-
-      <section className="table-container">
-        <h2>Ongoing Events</h2>
-
-        <table className="alerts-table">
-          <thead>
-            <tr>
-              <th>Event ID</th>
-              <th>Email</th>
-              <th>Type</th>
-              <th>Coordinates</th>
-              <th>Acceptors</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {alerts.map((a) => {
-              const eventAcceptors = acceptors.filter(acc => acc.eventId === a.id);
-              return (
-                <tr key={a.id}>
-                  <td style={{ fontFamily: 'monospace', fontSize: '0.85em', color: '#666' }}>
-                    {a.id.substring(0, 8)}...
-                  </td>
-                  <td>{a.email}</td>
-                  <td>{a.type}</td>
-                  <td>
-                    {a.lat && a.lng ? `${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}` : "N/A"}
-                  </td>
-                  <td>
-                    {eventAcceptors.length > 0 ? (
-                      <span style={{ color: 'green', fontWeight: 'bold' }}>
-                        ✓ {eventAcceptors.length} {eventAcceptors.length === 1 ? 'person' : 'people'}
-                      </span>
-                    ) : (
-                      <span style={{ color: '#999' }}>No acceptors yet</span>
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      className="locate-btn"
-                      onClick={() => locate(a.lat, a.lng)}
-                    >
-                      Locate
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="table-container">
-        <h2>Acceptors (People Responding)</h2>
-
+      <section className="table-container" style={{ marginTop: '20px' }}>
         <table className="alerts-table">
           <thead>
             <tr>
@@ -270,13 +172,12 @@ const SupervisorDashboard = () => {
               <th>Responding To</th>
               <th>Accepted At</th>
               <th>Coordinates</th>
-              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {acceptors.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: "center", color: "#999" }}>
+                <td colSpan="5" style={{ textAlign: "center", color: "#999", padding: "40px" }}>
                   No acceptors yet
                 </td>
               </tr>
@@ -285,16 +186,25 @@ const SupervisorDashboard = () => {
                 const relatedEvent = alerts.find(a => a.id === acceptor.eventId);
                 return (
                   <tr key={acceptor.id}>
-                    <td>{acceptor.name}</td>
+                    <td>
+                      <strong style={{ color: 'green' }}>👤 {acceptor.name}</strong>
+                    </td>
                     <td>{acceptor.email}</td>
                     <td>
                       {relatedEvent ? (
                         <div style={{ fontSize: '0.9em' }}>
-                          <div style={{ fontWeight: 'bold', color: '#d32f2f' }}>
+                          <div style={{ 
+                            fontWeight: 'bold', 
+                            color: '#d32f2f',
+                            background: '#ffebee',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            display: 'inline-block'
+                          }}>
                             🚨 {relatedEvent.type || 'SOS'}
                           </div>
-                          <div style={{ color: '#666', fontSize: '0.85em' }}>
-                            {relatedEvent.email}
+                          <div style={{ color: '#666', fontSize: '0.85em', marginTop: '4px' }}>
+                            Victim: {relatedEvent.email}
                           </div>
                         </div>
                       ) : (
@@ -306,18 +216,10 @@ const SupervisorDashboard = () => {
                         ? acceptor.acceptedAt.toDate().toLocaleString()
                         : "N/A"}
                     </td>
-                    <td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>
                       {acceptor.lat && acceptor.lng
-                        ? `${acceptor.lat.toFixed(4)}, ${acceptor.lng.toFixed(4)}`
+                        ? `${acceptor.lat.toFixed(5)}, ${acceptor.lng.toFixed(5)}`
                         : "N/A"}
-                    </td>
-                    <td>
-                      <button
-                        className="locate-btn"
-                        onClick={() => locate(acceptor.lat, acceptor.lng)}
-                      >
-                        Locate
-                      </button>
                     </td>
                   </tr>
                 );
@@ -330,4 +232,4 @@ const SupervisorDashboard = () => {
   );
 };
 
-export default SupervisorDashboard;
+export default AcceptorEvents;
