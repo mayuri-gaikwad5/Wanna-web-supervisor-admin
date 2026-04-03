@@ -12,6 +12,7 @@ const History = () => {
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [acceptorsMap, setAcceptorsMap] = useState({}); // Store acceptors by event ID
 
   // Multi-Option Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,11 +46,73 @@ const History = () => {
       
       setEvents(resolvedEvents);
       setFilteredEvents(resolvedEvents);
+
+      // Fetch acceptors for each past event
+      await fetchAcceptorsForEvents(resolvedEvents);
     } catch (error) {
-      console.error("Firestore Error:", error);
       setError("Could not retrieve regional history.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch acceptors for all past events (OPTIMIZED - Parallel fetching)
+  const fetchAcceptorsForEvents = async (eventsList) => {
+    const acceptorsData = {};
+
+    try {
+      // Create all fetch promises in parallel instead of sequential
+      const fetchPromises = eventsList.map(async (event) => {
+        const allAcceptors = [];
+
+        // Fetch from both collections in parallel
+        const [pastAcceptorsSnapshot, acceptedAcceptorsSnapshot] = await Promise.allSettled([
+          getDocs(collection(db, "pastEvents", event.id, "acceptors")),
+          getDocs(collection(db, "acceptedEvents", event.id, "acceptors"))
+        ]);
+
+        // Process pastEvents acceptors
+        if (pastAcceptorsSnapshot.status === 'fulfilled' && !pastAcceptorsSnapshot.value.empty) {
+          const pastAcceptors = pastAcceptorsSnapshot.value.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          allAcceptors.push(...pastAcceptors);
+        }
+
+        // Process acceptedEvents acceptors
+        if (acceptedAcceptorsSnapshot.status === 'fulfilled' && !acceptedAcceptorsSnapshot.value.empty) {
+          const acceptedAcceptors = acceptedAcceptorsSnapshot.value.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          allAcceptors.push(...acceptedAcceptors);
+        }
+
+        // Remove duplicates based on acceptor ID
+        if (allAcceptors.length > 0) {
+          const uniqueAcceptors = Array.from(
+            new Map(allAcceptors.map(acc => [acc.id, acc])).values()
+          );
+          return { eventId: event.id, acceptors: uniqueAcceptors };
+        }
+
+        return { eventId: event.id, acceptors: [] };
+      });
+
+      // Wait for all fetches to complete in parallel
+      const results = await Promise.all(fetchPromises);
+
+      // Build the acceptors map
+      results.forEach(({ eventId, acceptors }) => {
+        if (acceptors.length > 0) {
+          acceptorsData[eventId] = acceptors;
+        }
+      });
+
+      setAcceptorsMap(acceptorsData);
+    } catch (error) {
+      // Silently handle errors to avoid performance impact
     }
   };
 
@@ -144,7 +207,7 @@ const History = () => {
                     <th>Type</th>
                     <th>Emergency Message</th>
                     <th>Location</th>
-                    <th>Notified To</th>
+                    <th>Acceptors/Responders</th>
                     <th>Clicked By (Email)</th>
                     <th>User UID</th>
                     <th>Status</th>
@@ -152,24 +215,61 @@ const History = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEvents.map((event) => (
-                    <tr key={event.id}>
-                      <td className="fw-bold text-primary">#{event.event_id?.substring(0, 8)}</td>
-                      <td>{event.city}</td>
-                      <td><Badge bg="secondary">{event.emergency_type}</Badge></td>
-                      <td className="text-wrap" style={{ maxWidth: "200px" }}>{event.emergency_message}</td>
-                      <td className="font-monospace small">
-                        {event.location?.latitude?.toFixed(4)}, {event.location?.longitude?.toFixed(4)}
-                      </td>
-                      <td className="small">{Array.isArray(event.notified_to) ? event.notified_to.join(", ") : "N/A"}</td>
-                      <td className="fw-bold">{event.sos_clicked_by_email}</td>
-                      <td className="text-muted small">{event.sos_clicked_by_uid?.substring(0, 6)}...</td>
-                      <td><Badge bg="success">Resolved</Badge></td>
-                      <td className="small">
-                        {event.timestamp?.seconds ? new Date(event.timestamp.seconds * 1000).toLocaleString() : "N/A"}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredEvents.map((event) => {
+                    const eventAcceptors = acceptorsMap[event.id] || [];
+                    
+                    return (
+                      <tr key={event.id}>
+                        <td className="fw-bold text-primary">#{event.event_id?.substring(0, 8)}</td>
+                        <td>{event.city}</td>
+                        <td><Badge bg="secondary">{event.emergency_type}</Badge></td>
+                        <td className="text-wrap" style={{ maxWidth: "200px" }}>{event.emergency_message}</td>
+                        <td className="font-monospace small">
+                          {event.location?.latitude?.toFixed(4)}, {event.location?.longitude?.toFixed(4)}
+                        </td>
+                        <td>
+                          {eventAcceptors.length > 0 ? (
+                            <div style={{ fontSize: '0.85em' }}>
+                              <Badge bg="success" className="mb-1">
+                                ✓ {eventAcceptors.length} {eventAcceptors.length === 1 ? 'Responder' : 'Responders'}
+                              </Badge>
+                              {eventAcceptors.map((acceptor, idx) => (
+                                <div key={idx} style={{ 
+                                  fontSize: '0.9em', 
+                                  color: '#2e7d32',
+                                  marginTop: '4px',
+                                  padding: '2px 0'
+                                }}>
+                                  👤 {acceptor.name || acceptor.email}
+                                  {acceptor.acceptedAt && (
+                                    <div style={{ fontSize: '0.85em', color: '#666' }}>
+                                      {acceptor.acceptedAt.seconds 
+                                        ? new Date(acceptor.acceptedAt.seconds * 1000).toLocaleString()
+                                        : 'N/A'}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <Badge bg="secondary">No responders</Badge>
+                          )}
+                        </td>
+                        <td className="fw-bold">{event.sos_clicked_by_email}</td>
+                        <td className="text-muted small">{event.sos_clicked_by_uid?.substring(0, 6)}...</td>
+                        <td>
+                          {event.auto_resolved ? (
+                            <Badge bg="warning" text="dark">Auto-Resolved</Badge>
+                          ) : (
+                            <Badge bg="success">Resolved</Badge>
+                          )}
+                        </td>
+                        <td className="small">
+                          {event.timestamp?.seconds ? new Date(event.timestamp.seconds * 1000).toLocaleString() : "N/A"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </Table>
             </div>
