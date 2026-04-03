@@ -12,6 +12,7 @@ const adminRoutes = require("./routes/admin.routes");
 const supervisorRoutes = require("./routes/supervisor.routes");
 const logsRoutes = require("./routes/logs.routes");
 const cleanupRoutes = require("./routes/cleanup.routes");
+const eventsRoutes = require("./routes/events.routes");
 const createAdmin = require("./scripts/createAdmin");
 
 const app = express();
@@ -27,6 +28,7 @@ app.use("/admin", authMiddleware, adminRoutes);
 app.use("/supervisor", supervisorRoutes);
 app.use("/logs", logsRoutes);
 app.use("/cleanup", authMiddleware, cleanupRoutes);
+app.use("/events", eventsRoutes);
 // Start server
 connectDB().then(async () => {
   await createAdmin();

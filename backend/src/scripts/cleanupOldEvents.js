@@ -69,15 +69,7 @@ async function cleanupOldEvents() {
 
       console.log(`🔄 Processing event: ${eventId}`);
 
-      // 1. Mark the ongoing event as resolved
-      batch.update(eventDoc.ref, {
-        is_resolved: true,
-        resolved_at: now,
-        resolved_reason: 'Auto-resolved after 24 hours',
-        auto_resolved: true
-      });
-
-      // 2. Move to past events
+      // 1. Move to past events
       const pastEventRef = db.collection('pastEvents').doc(eventId);
       batch.set(pastEventRef, {
         ...eventData,
@@ -87,7 +79,7 @@ async function cleanupOldEvents() {
         auto_resolved: true
       });
 
-      // 3. Check if there are acceptors for this event
+      // 2. Check if there are acceptors for this event
       const acceptedEventRef = db.collection('acceptedEvents').doc(eventId);
       const acceptorsSnapshot = await acceptedEventRef.collection('acceptors').get();
 
@@ -104,8 +96,17 @@ async function cleanupOldEvents() {
             archived_at: now,
             archived_reason: 'Event auto-resolved after 24 hours'
           });
+
+          // Delete acceptor from acceptedEvents
+          batch.delete(acceptorDoc.ref);
         }
+
+        // Delete the parent acceptedEvents document
+        batch.delete(acceptedEventRef);
       }
+
+      // 3. Delete from ongoingEvents collection
+      batch.delete(eventDoc.ref);
 
       cleanedCount++;
     }
