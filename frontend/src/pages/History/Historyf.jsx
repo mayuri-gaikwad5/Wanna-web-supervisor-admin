@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
-import { 
-  Table, Container, Spinner, Badge, Card, Alert, 
-  Row, Col, Form, InputGroup, Button 
+import {
+  Table, Container, Spinner, Badge, Card, Alert,
+  Row, Col, Form, InputGroup, Button
 } from "react-bootstrap";
 import "./History.css";
 
@@ -37,13 +37,13 @@ const History = () => {
         where("city", "==", supervisorRegion),
         orderBy("timestamp", "desc")
       );
-      
+
       const querySnapshot = await getDocs(resolvedQuery);
       const resolvedEvents = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      
+
       setEvents(resolvedEvents);
       setFilteredEvents(resolvedEvents);
 
@@ -56,73 +56,51 @@ const History = () => {
     }
   };
 
-  // Fetch acceptors for all past events (OPTIMIZED - Parallel fetching)
   const fetchAcceptorsForEvents = async (eventsList) => {
     const acceptorsData = {};
 
     try {
-      // Create all fetch promises in parallel instead of sequential
       const fetchPromises = eventsList.map(async (event) => {
-        const allAcceptors = [];
 
-        // Fetch from both collections in parallel
-        const [pastAcceptorsSnapshot, acceptedAcceptorsSnapshot] = await Promise.allSettled([
-          getDocs(collection(db, "pastEvents", event.id, "acceptors")),
-          getDocs(collection(db, "acceptedEvents", event.id, "acceptors"))
-        ]);
+        // 🔥 Step 1: Try pastEvents
+        let snapshot = await getDocs(
+          collection(db, "pastEvents", event.id, "acceptors")
+        );
 
-        // Process pastEvents acceptors
-        if (pastAcceptorsSnapshot.status === 'fulfilled' && !pastAcceptorsSnapshot.value.empty) {
-          const pastAcceptors = pastAcceptorsSnapshot.value.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          allAcceptors.push(...pastAcceptors);
-        }
-
-        // Process acceptedEvents acceptors
-        if (acceptedAcceptorsSnapshot.status === 'fulfilled' && !acceptedAcceptorsSnapshot.value.empty) {
-          const acceptedAcceptors = acceptedAcceptorsSnapshot.value.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          allAcceptors.push(...acceptedAcceptors);
-        }
-
-        // Remove duplicates based on acceptor ID
-        if (allAcceptors.length > 0) {
-          const uniqueAcceptors = Array.from(
-            new Map(allAcceptors.map(acc => [acc.id, acc])).values()
+        // 🔥 Step 2: Fallback ONLY if empty
+        if (snapshot.empty) {
+          snapshot = await getDocs(
+            collection(db, "acceptedEvents", event.id, "acceptors")
           );
-          return { eventId: event.id, acceptors: uniqueAcceptors };
         }
 
-        return { eventId: event.id, acceptors: [] };
+        const acceptors = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        return { eventId: event.id, acceptors };
       });
 
-      // Wait for all fetches to complete in parallel
       const results = await Promise.all(fetchPromises);
 
-      // Build the acceptors map
       results.forEach(({ eventId, acceptors }) => {
-        if (acceptors.length > 0) {
-          acceptorsData[eventId] = acceptors;
-        }
+        acceptorsData[eventId] = acceptors;
       });
 
       setAcceptorsMap(acceptorsData);
+
     } catch (error) {
-      // Silently handle errors to avoid performance impact
+      console.error("Error fetching acceptors:", error);
     }
   };
-
   useEffect(() => {
     let results = [...events];
 
     // Search by Name/Email
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      results = results.filter(event => 
+      results = results.filter(event =>
         event.sos_clicked_by_email?.toLowerCase().includes(term) ||
         event.event_id?.toLowerCase().includes(term)
       );
@@ -162,10 +140,10 @@ const History = () => {
           <Col lg={3} md={3}>
             <Form.Group>
               <Form.Label className="small">From Date</Form.Label>
-              <Form.Control 
-                type="date" 
-                value={startDate} 
-                onChange={(e) => setStartDate(e.target.value)} 
+              <Form.Control
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
                 className="text-dark bg-white"
               />
             </Form.Group>
@@ -173,16 +151,16 @@ const History = () => {
           <Col lg={3} md={3}>
             <Form.Group>
               <Form.Label className="small">To Date</Form.Label>
-              <Form.Control 
-                type="date" 
-                value={endDate} 
-                onChange={(e) => setEndDate(e.target.value)} 
+              <Form.Control
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
                 className="text-dark bg-white"
               />
             </Form.Group>
           </Col>
           <Col lg={2}>
-            <Button variant="outline-danger" className="w-100" onClick={() => {setSearchTerm(""); setStartDate(""); setEndDate("");}}>
+            <Button variant="outline-danger" className="w-100" onClick={() => { setSearchTerm(""); setStartDate(""); setEndDate(""); }}>
               Reset
             </Button>
           </Col>
@@ -217,7 +195,7 @@ const History = () => {
                 <tbody>
                   {filteredEvents.map((event) => {
                     const eventAcceptors = acceptorsMap[event.id] || [];
-                    
+
                     return (
                       <tr key={event.id}>
                         <td className="fw-bold text-primary">#{event.event_id?.substring(0, 8)}</td>
@@ -234,8 +212,8 @@ const History = () => {
                                 ✓ {eventAcceptors.length} {eventAcceptors.length === 1 ? 'Responder' : 'Responders'}
                               </Badge>
                               {eventAcceptors.map((acceptor, idx) => (
-                                <div key={idx} style={{ 
-                                  fontSize: '0.9em', 
+                                <div key={idx} style={{
+                                  fontSize: '0.9em',
                                   color: '#2e7d32',
                                   marginTop: '4px',
                                   padding: '2px 0'
@@ -243,7 +221,7 @@ const History = () => {
                                   👤 {acceptor.name || acceptor.email}
                                   {acceptor.acceptedAt && (
                                     <div style={{ fontSize: '0.85em', color: '#666' }}>
-                                      {acceptor.acceptedAt.seconds 
+                                      {acceptor.acceptedAt.seconds
                                         ? new Date(acceptor.acceptedAt.seconds * 1000).toLocaleString()
                                         : 'N/A'}
                                     </div>
