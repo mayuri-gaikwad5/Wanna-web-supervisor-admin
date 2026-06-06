@@ -36,8 +36,10 @@ connectDB().then(async () => {
   // Start the event cleanup job
   startEventCleanupJob();
 
-  app.listen(3000, () => {
+  const PORT = process.env.PORT || 3000;
+
+  app.listen(PORT, () => {
     console.log("DEBUG MONGO_URI =", process.env.MONGO_URI);
-    console.log("Server running on port 3000");
+    console.log(`Server running on port ${PORT}`);
   });
 });
