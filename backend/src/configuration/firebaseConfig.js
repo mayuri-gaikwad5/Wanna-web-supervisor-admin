@@ -1,10 +1,15 @@
 const admin = require("firebase-admin");
-// Import the JSON file you downloaded from Firebase Console
-const serviceAccount = require("./serviceAccountKey.json"); 
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+const serviceAccount = {
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+};
 
-// Export the admin object so the middleware can use it
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
 module.exports = admin;
