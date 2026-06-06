@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { apiUrl } from "../../config/api";
+
 
 const AdminLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -6,7 +8,7 @@ const AdminLogs = () => {
 
   useEffect(() => {
     async function fetchLogs() {
-      const res = await fetch("http://localhost:3000/logs/region", {
+      const res = await fetch(apiUrl("/logs/region"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

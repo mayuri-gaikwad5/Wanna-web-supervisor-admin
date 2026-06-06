@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import { Container, Card, Form, Button, Alert } from "react-bootstrap";
+import { apiUrl } from "../../config/api";
+
 
 const CompleteProfile = () => {
   const [region, setRegion] = useState("");
@@ -28,7 +30,7 @@ const CompleteProfile = () => {
         const token = await user.getIdToken();
 
         // 2️⃣ Send the update request to your MongoDB via Express
-        const response = await fetch("http://localhost:3000/supervisor/complete-profile", {
+        const response = await fetch(apiUrl("/supervisor/complete-profile"), {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

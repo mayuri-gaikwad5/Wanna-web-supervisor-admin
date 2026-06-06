@@ -8,6 +8,8 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
 } from "firebase/auth";
+import { apiUrl } from "../../config/api";
+
 
 import "./Login.css";
 
@@ -49,7 +51,7 @@ const Login = () => {
       const user = cred.user;
 
       // 2️⃣ Fetch role and region from the unified Auth status route
-      const res = await fetch(`http://localhost:3000/auth/status/${user.uid}`);
+      const res = await fetch(apiUrl(`/auth/status/${user.uid}`));
       
       if (!res.ok) {
         throw new Error("Account record not found in system database.");
@@ -78,7 +80,7 @@ const Login = () => {
 
       // 5️⃣ Create Audit Log (Login Event)
       // Tagging with region ensures the Solapur Admin can see this log
-      await fetch("http://localhost:3000/logs/create", {
+      await fetch(apiUrl("/logs/create"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

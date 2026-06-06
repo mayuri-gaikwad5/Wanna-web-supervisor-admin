@@ -4,6 +4,8 @@ import { db } from "../../firebase/firebaseConfig";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import "./SupervisorDashboard.css";
+import { apiUrl } from "../../config/api";
+
 
 /* 🔥 UNIVERSAL LOCATION PARSER */
 const extractLatLng = (location) => {
@@ -50,7 +52,7 @@ const OngoingEvents = () => {
       if (!user) return navigate("/login");
 
       const token = await user.getIdToken();
-      const res = await fetch("http://localhost:3000/supervisor/profile", {
+      const res = await fetch(apiUrl("/supervisor/profile"), {
         headers: { Authorization: `Bearer ${token}` },
       });
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Container, Table, Button, Badge, Tabs, Tab, Card, Spinner, Alert } from "react-bootstrap";
+import { apiUrl } from "../../config/api";
 
 const AdminApproval = () => {
   const [pending, setPending] = useState([]);
@@ -18,15 +19,15 @@ const AdminApproval = () => {
       const headers = { Authorization: `Bearer ${token}` };
 
       // 1. Fetch Pending
-      const pendingRes = await fetch("http://localhost:3000/admin/supervisors/pending", { headers });
+      const pendingRes = await fetch(apiUrl("/admin/supervisors/pending"), { headers });
       const pendingData = await pendingRes.json();
 
       // 2. Fetch Approved
-      const approvedRes = await fetch("http://localhost:3000/admin/supervisors/approved", { headers });
+      const approvedRes = await fetch(apiUrl("/admin/supervisors/approved"), { headers });
       const approvedData = await approvedRes.json();
 
       // 3. Fetch Regional Logs 🔥
-      const logsRes = await fetch("http://localhost:3000/logs/region", { headers });
+      const logsRes = await fetch(apiUrl("/logs/region"), { headers });
       const logsData = await logsRes.json();
 
       if (pendingRes.ok && approvedRes.ok && logsRes.ok) {
@@ -50,7 +51,7 @@ const AdminApproval = () => {
 
   const handleApprove = async (id) => {
     try {
-      const res = await fetch(`http://localhost:3000/admin/supervisors/${id}/approve`, {
+      const res = await fetch(apiUrl(`/admin/supervisors/${id}/approve`), {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -63,7 +64,7 @@ const AdminApproval = () => {
   const handleRevoke = async (id) => {
     if (window.confirm("Revoke access? This will reset the supervisor's region.")) {
       try {
-        const res = await fetch(`http://localhost:3000/admin/supervisors/${id}/revoke`, {
+        const res = await fetch(apiUrl(`/admin/supervisors/${id}/revoke`), {
           method: "PATCH",
           headers: { Authorization: `Bearer ${token}` }
         });

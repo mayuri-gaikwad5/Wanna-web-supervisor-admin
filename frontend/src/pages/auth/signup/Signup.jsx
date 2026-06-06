@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { apiUrl } from "../../config/api";
+
 
 import { auth, db } from "../../../firebase/firebaseConfig"; // Added db
 import {
@@ -66,7 +68,7 @@ const Signup = () => {
       });
 
       // 4️⃣ Optional: Keep your MongoDB sync if you still use it
-      await fetch("http://localhost:3000/supervisor/register", {
+      await fetch(apiUrl("/supervisor/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

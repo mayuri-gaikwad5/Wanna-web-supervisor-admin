@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { apiUrl } from "../../config/api";
+
 
 const ProtectedRoute = ({ children, allowedRole }) => {
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,7 @@ const ProtectedRoute = ({ children, allowedRole }) => {
           
           // 🔥 CRITICAL CHANGE: Use /auth/status/ instead of /supervisor/status/
           // This ensures the backend checks the Admin collection too.
-          const response = await fetch(`http://localhost:3000/auth/status/${user.uid}`, {
+          const response = await fetch(apiUrl(`/auth/status/${user.uid}`), {
             headers: { 
               'Authorization': `Bearer ${token}` 
             }

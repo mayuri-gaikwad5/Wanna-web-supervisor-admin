@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig"; 
 import "./curr.css"
+import { apiUrl } from "../../config/api";
+
 
 const CurrentStatus = () => {
   const [events, setEvents] = useState([]);
@@ -11,7 +13,7 @@ const CurrentStatus = () => {
     const syncToMongoDB = async (eventsToSync) => {
       try {
         for (const event of eventsToSync) {
-          await fetch("http://localhost:3000/events/sync", {
+          await fetch(apiUrl("/events/sync"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(event),

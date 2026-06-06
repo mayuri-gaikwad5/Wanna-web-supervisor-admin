@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from "../../config/api";
+
 
 const CurrentStatus = () => {
   // State to store SOS data
@@ -8,7 +10,7 @@ const CurrentStatus = () => {
   useEffect(() => {
     const fetchSosData = async () => {
       try {
-        const response = await fetch("http://localhost:3000/sos");
+        const response = await fetch(apiUrl("/sos"));
         const data = await response.json();
         setSosData(data); // Set the fetched SOS data into state
       } catch (error) {
