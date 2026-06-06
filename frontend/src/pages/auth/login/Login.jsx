@@ -8,7 +8,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
 } from "firebase/auth";
-import { apiUrl } from "../../config/api";
+import { apiUrl } from "../../../config/api";
 
 
 import "./Login.css";

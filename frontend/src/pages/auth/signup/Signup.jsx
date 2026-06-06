@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { apiUrl } from "../../config/api";
+import { apiUrl } from "../../../config/api";
 
 
 import { auth, db } from "../../../firebase/firebaseConfig"; // Added db
