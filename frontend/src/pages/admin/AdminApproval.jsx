@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Container, Table, Button, Badge, Tabs, Tab, Card, Spinner, Alert } from "react-bootstrap";
+import "./AdminApproval.css";
 import { apiUrl } from "../../config/api";
 
 const AdminApproval = () => {
@@ -91,21 +92,60 @@ const AdminApproval = () => {
 
       <Card className="shadow-sm border-0">
         <Card.Body>
-          <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
-            
-            {/* ========== PENDING REQUESTS ========== */}
-            <Tab eventKey="pending" title={`Pending (${pending.length})`}>
-              <Table responsive hover className="align-middle">
-                <thead className="table-light">
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Region</th>
-                    <th className="text-end">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pending.map((sup) => (
+
+          {/* ── Mobile dropdown (hidden on desktop via CSS) ── */}
+          <div className="tab-mobile-select-wrapper">
+            <select
+              id="admin-approval-tab-select"
+              className="tab-mobile-select"
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+            >
+              <option value="pending">Pending ({pending.length})</option>
+              <option value="approved">Active ({approved.length})</option>
+              <option value="logs">Activity History</option>
+            </select>
+          </div>
+
+          {/* ── Desktop tabs (hidden on mobile via CSS) ── */}
+          <div className="tab-desktop-tabs">
+            <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
+
+              {/* ========== PENDING REQUESTS ========== */}
+              <Tab eventKey="pending" title={`Pending (${pending.length})`}>
+                {/* content rendered outside Tabs below */}
+              </Tab>
+
+              {/* ========== ACTIVE SUPERVISORS ========== */}
+              <Tab eventKey="approved" title={`Active (${approved.length})`}>
+                {/* content rendered outside Tabs below */}
+              </Tab>
+
+              {/* ========== ACTIVITY LOGS ========== */}
+              <Tab eventKey="logs" title="Activity History">
+                {/* content rendered outside Tabs below */}
+              </Tab>
+
+            </Tabs>
+          </div>
+
+          {/* ── Shared tab content (used by both desktop tabs and mobile dropdown) ── */}
+
+          {activeTab === "pending" && (
+            <Table responsive hover className="align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Region</th>
+                  <th className="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center py-4 text-muted">No pending requests.</td></tr>
+                ) : (
+                  pending.map((sup) => (
                     <tr key={sup._id}>
                       <td className="fw-bold">{sup.name}</td>
                       <td>{sup.email}</td>
@@ -114,24 +154,27 @@ const AdminApproval = () => {
                         <Button variant="success" size="sm" onClick={() => handleApprove(sup._id)}>Approve</Button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Tab>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          )}
 
-            {/* ========== ACTIVE SUPERVISORS ========== */}
-            <Tab eventKey="approved" title={`Active (${approved.length})`}>
-              <Table responsive hover className="align-middle">
-                <thead className="table-light">
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Region</th>
-                    <th className="text-end">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {approved.map((sup) => (
+          {activeTab === "approved" && (
+            <Table responsive hover className="align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Region</th>
+                  <th className="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {approved.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center py-4 text-muted">No active supervisors.</td></tr>
+                ) : (
+                  approved.map((sup) => (
                     <tr key={sup._id}>
                       <td className="fw-bold">{sup.name}</td>
                       <td>{sup.email}</td>
@@ -140,46 +183,45 @@ const AdminApproval = () => {
                         <Button variant="outline-danger" size="sm" onClick={() => handleRevoke(sup._id)}>Revoke Access</Button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Tab>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          )}
 
-            {/* ========== ACTIVITY LOGS 🔥 ========== */}
-            <Tab eventKey="logs" title="Activity History">
-              <Table responsive hover className="align-middle">
-                <thead className="table-light">
-                  <tr>
-                    <th>Email</th>
-                    <th>Event</th>
-                    <th>Description</th>
-                    <th>Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.length === 0 ? (
-                    <tr><td colSpan="4" className="text-center py-4 text-muted">No activity logs found for this region.</td></tr>
-                  ) : (
-                    logs.map((log) => (
-                      <tr key={log._id}>
-                        <td className="small">{log.email}</td>
-                        <td>
-                          <Badge bg={log.eventType === "login" ? "success" : log.eventType === "logout" ? "warning" : "secondary"}>
-                            {log.eventType.toUpperCase()}
-                          </Badge>
-                        </td>
-                        <td>{log.actionDescription}</td>
-                        <td className="text-muted small">
-                          {new Date(log.timestamp).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </Table>
-            </Tab>
+          {activeTab === "logs" && (
+            <Table responsive hover className="align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th>Email</th>
+                  <th>Event</th>
+                  <th>Description</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center py-4 text-muted">No activity logs found for this region.</td></tr>
+                ) : (
+                  logs.map((log) => (
+                    <tr key={log._id}>
+                      <td className="small">{log.email}</td>
+                      <td>
+                        <Badge bg={log.eventType === "login" ? "success" : log.eventType === "logout" ? "warning" : "secondary"}>
+                          {log.eventType.toUpperCase()}
+                        </Badge>
+                      </td>
+                      <td>{log.actionDescription}</td>
+                      <td className="text-muted small">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          )}
 
-          </Tabs>
         </Card.Body>
       </Card>
     </Container>
