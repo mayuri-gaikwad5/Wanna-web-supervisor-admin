@@ -68,16 +68,24 @@ const Signup = () => {
       });
 
       // 4️⃣ Optional: Keep your MongoDB sync if you still use it
-      await fetch(apiUrl("/supervisor/register"), {
+      const response = await fetch(apiUrl("/supervisor/register"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           name,
           email,
           firebaseUid: user.uid,
-          // We no longer send region here; MongoDB can be updated later in Step 2
         }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Supervisor registration failed");
+      }
+      
 
       alert(
         "Account created! Please verify your email. You will be asked to select your region upon your first login."

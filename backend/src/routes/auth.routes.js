@@ -45,9 +45,9 @@ router.get("/status/:uid", async (req, res) => {
 
     console.log("❌ No user found for UID:", firebaseUid);
 
-    return res.status(404).json({
-      message: "Account not found in system database",
-    });
+    console.error(
+      `User authenticated in Firebase but missing in MongoDB. UID: ${firebaseUid}`
+    );
   } catch (error) {
     console.error("❌ Auth status error:", error);
     res.status(500).json({ message: "Server error" });
