@@ -12,8 +12,13 @@ router.get("/status/:uid", async (req, res) => {
   try {
     const firebaseUid = req.params.uid;
 
-    // 1️⃣ ADMIN CHECK (FIRST)
+    console.log("=================================");
+    console.log("Incoming UID:", firebaseUid);
+
+    // 1️⃣ ADMIN CHECK
     const admin = await Admin.findOne({ firebaseUid });
+
+    console.log("Admin Found:", admin);
 
     if (admin) {
       return res.status(200).json({
@@ -27,6 +32,8 @@ router.get("/status/:uid", async (req, res) => {
     // 2️⃣ SUPERVISOR CHECK
     const supervisor = await Supervisor.findOne({ firebaseUid });
 
+    console.log("Supervisor Found:", supervisor);
+
     if (supervisor) {
       return res.status(200).json({
         role: "supervisor",
@@ -36,12 +43,13 @@ router.get("/status/:uid", async (req, res) => {
       });
     }
 
-    // 3️⃣ NOT FOUND
+    console.log("❌ No user found for UID:", firebaseUid);
+
     return res.status(404).json({
       message: "Account not found in system database",
     });
   } catch (error) {
-    console.error("❌ Auth status error:", error.message);
+    console.error("❌ Auth status error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
